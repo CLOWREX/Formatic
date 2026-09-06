@@ -290,8 +290,22 @@ export default function FormEditor() {
     isSavingRef.current = true;
 
     // Survey: semua soal di page 1. Ujian: page = urutan soal (1-indexed)
+    // Soal identitas (Nama/Kelas/Absen) selalu page 1 agar tampil bersama
     const isQuiz = form?.category === "ujian";
-    const getPage = (globalIdx) => isQuiz ? globalIdx + 1 : 1;
+    const IDENTITY_LABELS = ["nama lengkap", "kelas", "nomor absen", "nama", "absen"];
+    const isIdentitySoal = (q) => {
+      const txt = (q.question ?? "").replace(/<[^>]*>/g, "").trim().toLowerCase();
+      return IDENTITY_LABELS.some(lbl => txt === lbl || txt.startsWith(lbl));
+    };
+    const getPage = (globalIdx, q) => {
+      if (!isQuiz) return 1;
+      if (isIdentitySoal(q)) return 1;
+      // Hitung berapa soal identitas di depan soal ini
+      const identityCount = questions.slice(0, globalIdx).filter(isIdentitySoal).length;
+      // Page = index non-identitas + 2 (karena page 1 = identitas)
+      const nonIdentityBefore = globalIdx - identityCount;
+      return nonIdentityBefore + 2;
+    };
 
     try {
       const token = localStorage.getItem("token");
@@ -315,7 +329,7 @@ export default function FormEditor() {
         await Promise.all(
           existingOnes.map((q) => {
             const idx = questions.findIndex(x => x.id === q.id);
-            const pageVal = getPage(idx);
+            const pageVal = getPage(idx, q);
             const hasOpts = ["radio", "checkbox", "rating"].includes(q.type);
             const payload = {
               soal: { question: q.question, type: q.type, page: pageVal, score: q.score ?? null,
@@ -370,7 +384,7 @@ export default function FormEditor() {
         const payload = newOnes.map((q, i) => {
           const hasOpts = ["radio", "checkbox", "rating"].includes(q.type);
           const globalIdx = questions.findIndex(x => x === q);
-          const pageVal = getPage(globalIdx);
+          const pageVal = getPage(globalIdx, q);
           if (q.attachment instanceof File) {
             fd.append("soal_images", q.attachment, `soal_${i}_${q.attachment.name}`);
           }

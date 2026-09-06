@@ -624,8 +624,22 @@ export default function FillForm() {
     const isFirst     = currentIdx === 0;
     const isLast      = currentIdx === totalPages - 1;
     const progress    = totalPages > 0 ? ((currentIdx + 1) / totalPages) * 100 : 0;
-     const pageNum     = currPage.page ?? (currentIdx + 1);
+    const pageNum     = currPage.page ?? (currentIdx + 1);
+
+    // Page 1 = halaman identitas — tampil semua soal sekaligus (scroll)
+    const isIdentityPage = currentIdx === 0;
+
     function goNext() {
+      // Validasi wajib diisi — tapi hanya untuk soal required
+      let reqMap = {};
+      try { const s = localStorage.getItem(`soal_required_${slug}`); if (s) reqMap = JSON.parse(s); } catch {}
+      const isReq = (s) => reqMap[s.id] !== undefined ? reqMap[s.id] : true;
+      const unanswered = (currPage.soal ?? []).find(s => isReq(s) && !hasAnswer(s));
+      if (unanswered) {
+        const clean = (unanswered.question || "Wajib").replace(/<[^>]*>/g, "").trim();
+        setSubmitError(`Pertanyaan "${clean}" belum dijawab.`);
+        return;
+      }
       setSubmitError("");
       setErrorSoalId(null);
       setCurrentIdx(i => Math.min(i + 1, totalPages - 1));
@@ -672,18 +686,24 @@ export default function FillForm() {
               {timeLeft !== null && (
                 <TimerBadge timeLeft={timeLeft} />
               )}
-              {/* Tombol Soal */}
+              {/* Tombol Soal — sembunyikan di page identitas */}
+              {!isIdentityPage && (
               <SoalIndicatorBtn
-                allSoal={allSoal}
+                allSoal={allSoal.filter(s => {
+                  // Soal indicator hanya untuk soal non-identitas
+                  const identityPage = pageGroups[0];
+                  return !(identityPage?.soal ?? []).some(is => is.id === s.id);
+                })}
                 answers={answers}
                 hasAnswer={hasAnswer}
                 doubtfulIds={doubtfulIds}
-                pageGroups={pageGroups}
-                currentIdx={currentIdx}
-                setCurrentIdx={setCurrentIdx}
+                pageGroups={pageGroups.slice(1)} // skip page identitas
+                currentIdx={Math.max(0, currentIdx - 1)}
+                setCurrentIdx={(i) => setCurrentIdx(i + 1)}
                 answeredCount={answeredCount}
                 doubtCount={doubtCount}
               />
+              )}
             </div>
 
             {/* Progress Section */}
@@ -737,9 +757,13 @@ export default function FillForm() {
 
         {/* Semua soal di halaman ini */}
           {(currPage.soal ?? []).map((soal, idx) => {
-            // Nomor soal = posisi dalam urutan pageGroups setelah shuffle (bukan urutan DB)
-            const shuffledIdx = pageGroups.findIndex(pg => (pg.soal ?? []).some(s => s.id === soal.id));
-            const displayNum  = shuffledIdx >= 0 ? shuffledIdx : idx;
+            // Page identitas (page 1): nomor lokal. Page soal: posisi global setelah shuffle
+            const displayNum = isIdentityPage
+              ? idx
+              : (() => {
+                  const identityCount = pageGroups[0]?.soal?.length ?? 0;
+                  return identityCount + (currentIdx - 1);
+                })();
             const isDoubt = doubtfulIds.has(soal.id);
             // Tampilkan group header jika soal ini punya group_text dan soal sebelumnya beda group
             const prevSoal = idx > 0 ? (currPage.soal ?? [])[idx - 1] : null;
@@ -772,7 +796,8 @@ export default function FillForm() {
                   soalRefs={soalRefs}
                   theme={theme}
                 />
-                {/* Tombol ragu-ragu */}
+                {/* Tombol ragu-ragu — hanya untuk page soal, bukan identitas */}
+                {!isIdentityPage && (
                 <div className="flex justify-end mb-4 -mt-2 pr-1">
                   <button onClick={() => toggleDoubt(soal.id)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition ${
@@ -783,6 +808,7 @@ export default function FillForm() {
                     <span>🚩</span> {isDoubt ? "Ragu-ragu" : "Tandai ragu-ragu"}
                   </button>
                 </div>
+                )}
               </div>
             );
           })}
@@ -804,7 +830,7 @@ export default function FillForm() {
               <button onClick={goNext}
                 className="flex-1 py-3 rounded-xl text-[14px] font-bold flex items-center justify-center gap-2 hover:opacity-90 transition shadow-md"
                 style={{ backgroundColor: theme.primaryColor || "#1a4fa0", color: theme.primaryText || "#ffffff" }}>
-                Selanjutnya <ArrowRight size={16} />
+                {isIdentityPage ? "Mulai Mengerjakan →" : <><span>Selanjutnya</span> <ArrowRight size={16} /></>}
               </button>
             ) : (
               <button onClick={submit} disabled={submitting}
