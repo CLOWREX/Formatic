@@ -460,7 +460,7 @@ export class SubmitService {
         .first()
       if (existingSubmit.status == "completed") throw new ConflictException("Anda sudah mengisi form ini")
 
-      const updateToCompleted = await this.changeFormSubmit("update", req.id, form.id, 1, req.username, this.knexService.connection.fn.now())
+      const updateToCompleted = await this.changeFormSubmit("submit", req.id, form.id, 1, req.username, this.knexService.connection.fn.now())
 
       await trx('user_answer').insert(
         answers.map((answer) => ({ ...answer, submitted_id: updateToCompleted.id }))
