@@ -1160,6 +1160,26 @@ function ResponsesTab({ formId, form }) {
   const [activeSubTab, setActiveSubTab] = useState("Ringkasan");
   const [exporting, setExporting]       = useState(false);
   const [exportAlert, setExportAlert]   = useState(null);
+  const [detail, setDetail]             = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  async function loadDetail() {
+    if (detail) return; // sudah di-fetch
+    setDetailLoading(true);
+    try {
+      const res = await fetch(`${FORM_API_URL}/form/submit/detail?form_slug=${formSlug}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      setDetail(data?.data ?? []);
+    } catch { setDetail([]); }
+    finally { setDetailLoading(false); }
+  }
+
+  function handleSubTab(t) {
+    setActiveSubTab(t);
+    if ((t === "Jawaban" || t === "Responden") && !detail) loadDetail();
+  }
 
   useEffect(() => {
     if (!formSlug) { setLoading(false); return; }
@@ -1354,7 +1374,7 @@ function ResponsesTab({ formId, form }) {
         {/* SUB TABS */}
         <div className="h-[60px] flex items-center px-[22px] gap-9 border-b border-[#edf1f7] overflow-x-auto">
           {["Ringkasan", "Jawaban", "Responden"].map(t => (
-            <button key={t} onClick={() => setActiveSubTab(t)}
+            <button key={t} onClick={() => handleSubTab(t)}
               className={`relative h-[60px] flex items-center text-[13px] font-semibold border-none bg-transparent cursor-pointer transition-colors whitespace-nowrap ${
                 activeSubTab === t ? "text-[#075ee0]" : "text-[#63759b] hover:text-[#075ee0]"
               }`}>
@@ -1384,6 +1404,9 @@ function ResponsesTab({ formId, form }) {
         {/* CONTENT */}
         {!loading && total > 0 && (
           <>
+            {/* ── RINGKASAN ── */}
+            {activeSubTab === "Ringkasan" && (
+            <>
             {/* STATISTICS */}
             <div className="grid grid-cols-4 gap-[15px] p-[22px] pb-[10px] max-[900px]:grid-cols-2">
               {[
@@ -1430,21 +1453,16 @@ function ResponsesTab({ formId, form }) {
                       {opts.map((opt, oi) => {
                         const count  = opt.total_answer ?? 0;
                         const pctVal = answered > 0 ? ((count / answered) * 100).toFixed(1) : "0.0";
-                        // Bar width max 70% dari container supaya label % tidak tertutupi
                         const barPct = answered > 0 ? (count / maxCount) * 70 : 0;
                         return (
                           <div key={oi} className="flex items-center gap-3">
-                            {/* Label opsi */}
                             <span className="w-[30%] text-[12px] text-[#364a6e] font-medium truncate shrink-0">
                               {opt.value ?? opt.option_value ?? `Opsi ${oi+1}`}
                             </span>
-                            {/* Bar */}
                             <div className="flex-1 flex items-center gap-2">
                               <div className="flex-1 h-2.5 bg-[#edf1f7] rounded-full overflow-hidden">
-                                <div
-                                  className="h-full rounded-full transition-all duration-500"
-                                  style={{ width: `${barPct}%`, background: CHART_COLORS[oi % CHART_COLORS.length] }}
-                                />
+                                <div className="h-full rounded-full transition-all duration-500"
+                                  style={{ width: `${barPct}%`, background: CHART_COLORS[oi % CHART_COLORS.length] }} />
                               </div>
                               <span className="text-[11px] font-bold text-[#142d63] shrink-0 w-[52px] text-right">
                                 {count} <span className="text-[#9aabbd] font-normal">({pctVal}%)</span>
@@ -1455,8 +1473,6 @@ function ResponsesTab({ formId, form }) {
                       })}
                     </div>
                   )}
-
-                  {/* TEXT answers */}
                   {q.type === "text" && (
                     <div className="px-5 py-4">
                       <p className="text-[12px] text-[#8ca0ba]">
@@ -1467,6 +1483,130 @@ function ResponsesTab({ formId, form }) {
                 </div>
               );
             })}
+            </>
+            )}
+
+            {/* ── JAWABAN per responden ── */}
+            {activeSubTab === "Jawaban" && (
+              <div className="p-[22px]">
+                {detailLoading && (
+                  <div className="flex items-center justify-center py-10">
+                    <div className="w-7 h-7 border-2 border-[#075ee0] border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+                {!detailLoading && detail && (() => {
+                  // Flatten soal dari detail
+                  const soalAll = (detail ?? []).flatMap(pg => pg.soal ?? pg);
+                  // Build respondent map: submitted_id → { username, answers: {soal_id: answer} }
+                  const respMap = new Map();
+                  soalAll.forEach(s => {
+                    (s.responses ?? []).forEach(r => {
+                      if (!respMap.has(r.submitted_id)) respMap.set(r.submitted_id, { answers: {} });
+                      respMap.get(r.submitted_id).answers[s.id] = r.answer;
+                    });
+                  });
+                  const respRows = Array.from(respMap.entries());
+                  if (respRows.length === 0) return <p className="text-center text-[13px] text-[#7384a4] py-8">Belum ada jawaban.</p>;
+                  return (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-[12px] border-collapse">
+                        <thead>
+                          <tr className="bg-[#1F4E78] text-white">
+                            <th className="px-3 py-2 text-left font-semibold border border-[#2a5f8f] w-10">No</th>
+                            {soalAll.map((s, i) => (
+                              <th key={s.id ?? i} className="px-3 py-2 text-left font-semibold border border-[#2a5f8f] min-w-[120px] max-w-[200px]">
+                                <div className="truncate">{(s.question ?? "").replace(/<[^>]*>/g, "").slice(0, 40)}</div>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {respRows.map(([sid, data], ri) => (
+                            <tr key={sid} className={ri % 2 === 0 ? "bg-white" : "bg-[#f5f9ff]"}>
+                              <td className="px-3 py-2 border border-[#e7edf6] text-center font-semibold text-[#142d63]">{ri + 1}</td>
+                              {soalAll.map((s, i) => {
+                                const raw = data.answers[s.id];
+                                let display = "-";
+                                if (raw != null) {
+                                  if (typeof raw === "number") {
+                                    const opt = (s.options ?? []).find(o => o.id === raw);
+                                    display = opt?.value ?? String(raw);
+                                  } else display = String(raw);
+                                }
+                                return (
+                                  <td key={s.id ?? i} className="px-3 py-2 border border-[#e7edf6] text-[#364a6e] max-w-[200px]">
+                                    <div className="truncate">{display}</div>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* ── RESPONDEN list ── */}
+            {activeSubTab === "Responden" && (
+              <div className="p-[22px]">
+                {detailLoading && (
+                  <div className="flex items-center justify-center py-10">
+                    <div className="w-7 h-7 border-2 border-[#075ee0] border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+                {!detailLoading && detail && (() => {
+                  const soalAll = (detail ?? []).flatMap(pg => pg.soal ?? pg);
+                  const respMap = new Map();
+                  soalAll.forEach(s => {
+                    (s.responses ?? []).forEach(r => {
+                      if (!respMap.has(r.submitted_id)) respMap.set(r.submitted_id, { sid: r.submitted_id, answers: {} });
+                      respMap.get(r.submitted_id).answers[s.id] = r.answer;
+                    });
+                  });
+                  const rows = Array.from(respMap.values());
+                  if (rows.length === 0) return <p className="text-center text-[13px] text-[#7384a4] py-8">Belum ada responden.</p>;
+                  return (
+                    <div className="space-y-3">
+                      {rows.map((row, i) => (
+                        <div key={row.sid} className="border border-[#e7edf6] rounded-xl bg-white p-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-8 h-8 rounded-full bg-[#1a4fa0] text-white text-[13px] font-bold flex items-center justify-center shrink-0">
+                              {i + 1}
+                            </div>
+                            <span className="text-[13px] font-bold text-[#142d63]">Responden #{i + 1}</span>
+                            <span className="text-[11px] text-[#7384a4] ml-auto">ID: {row.sid}</span>
+                          </div>
+                          <div className="space-y-1.5">
+                            {soalAll.map((s, si) => {
+                              const raw = row.answers[s.id];
+                              let display = "-";
+                              if (raw != null) {
+                                if (typeof raw === "number") {
+                                  const opt = (s.options ?? []).find(o => o.id === raw);
+                                  display = opt?.value ?? String(raw);
+                                } else display = String(raw);
+                              }
+                              return (
+                                <div key={s.id ?? si} className="flex items-start gap-2 text-[12px]">
+                                  <span className="text-[#7384a4] shrink-0 w-5">{si + 1}.</span>
+                                  <span className="text-[#364a6e] font-medium shrink-0 max-w-[40%] truncate">
+                                    {(s.question ?? "").replace(/<[^>]*>/g, "").slice(0, 35)}:
+                                  </span>
+                                  <span className="text-[#142d63] flex-1">{display}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </>
         )}
       </div>
