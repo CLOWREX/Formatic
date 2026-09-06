@@ -110,6 +110,7 @@ export class SubmitService {
     const totalSubmit = await this.knexService.connection('form_submit')
       .count('* as total')
       .where('form_id', form.id)
+      .where('status', 'completed')
       .first()
 
     const optionCountRows = await this.knexService.connection('user_answer')
@@ -117,6 +118,7 @@ export class SubmitService {
       .select('user_answer.soal_id', 'user_answer.soal_option_id as option_value_id')
       .count('user_answer.id as total')
       .where('form_submit.form_id', form.id)
+      .where('form_submit.status', 'completed')
       .whereNotNull('user_answer.soal_option_id')
       .groupBy('user_answer.soal_id', 'user_answer.soal_option_id')
 
@@ -130,6 +132,7 @@ export class SubmitService {
       .innerJoin('form_submit', 'form_submit.id', 'user_answer.submitted_id')
       .select('user_answer.soal_id', 'user_answer.answer_text')
       .where('form_submit.form_id', form.id)
+      .where('form_submit.status', 'completed')
       .whereNotNull('user_answer.answer_text')
 
     const textAnswersMap = textAnswersRows.reduce((acc: any, row: any) => {
