@@ -110,7 +110,7 @@ export default function FormEditor() {
     };
   }, [slug]);
 
-  async function loadForm(silent = false) {
+  async function loadForm(silent = false, clearNew = false) {
     if (!silent) setLoading(true);
     setError("");
     try {
@@ -142,7 +142,7 @@ export default function FormEditor() {
               image: o.image ?? null,
             })),
           }));
-          const unsaved = prev.filter(q => q._new);
+          const unsaved = clearNew ? [] : prev.filter(q => q._new);
           return [...fromDB, ...unsaved];
         });
 
@@ -601,7 +601,12 @@ export default function FormEditor() {
               onCopyLink={copyLink}
               onShowToast={showToast}
               onImported={loadForm}
-              onImportedSilent={async () => { await loadForm(true); setTimeout(() => { isSavingRef.current = false; }, 1000); }}
+              onImportedSilent={async () => {
+                // Bersihkan soal _new dulu supaya tidak duplikat setelah import
+                setQuestions(prev => prev.filter(q => !q._new));
+                await loadForm(true, true);
+                setTimeout(() => { isSavingRef.current = false; }, 1000);
+              }}
               onImportGuard={(v) => { isSavingRef.current = v; }}
             />
           )}
