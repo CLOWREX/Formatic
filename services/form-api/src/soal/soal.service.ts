@@ -353,6 +353,16 @@ export class SoalService {
             throw new BadRequestException('Tidak ada soal yang ditemukan di dokumen DOCX.')
         }
 
+        // Hapus semua soal lama sebelum import yang baru
+        const existingSoal = await this.knexService.connection("soal")
+            .select("id")
+            .where("form_id", form_slug.id)
+        if (existingSoal.length > 0) {
+            const ids = existingSoal.map((s: any) => s.id)
+            await this.knexService.connection("soal_option").whereIn("soal_id", ids).delete()
+            await this.knexService.connection("soal").whereIn("id", ids).delete()
+        }
+
         return this.createSoalAndOption(form_slug, finalParsedSoal)
     }
 
