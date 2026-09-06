@@ -461,7 +461,14 @@ export class SubmitService {
       const existingSubmit = await trx('form_submit')
         .where({ user_id: req.id, form_id: form.id })
         .first()
-      if (existingSubmit.status == "completed") throw new ConflictException("Anda sudah mengisi form ini")
+
+      // Kalau sudah completed, tolak
+      if (existingSubmit?.status === "completed") throw new ConflictException("Anda sudah mengisi form ini")
+
+      // Kalau belum ada row (sudah di-cleanup atau pertama kali), insert dulu
+      if (!existingSubmit) {
+        await this.changeFormSubmit("insert", req.id, form.id, 1, req.username)
+      }
 
       const updateToCompleted = await this.changeFormSubmit("submit", req.id, form.id, 1, req.username, this.knexService.connection.fn.now())
 
