@@ -17,6 +17,7 @@ function jwtToken(payload){
     return jwt.sign(payload, process.env.SECRET, { expiresIn: '365d'})
 }
 
+
 async function queryWithLimit(text, params) {
     return limit(() => pool.query(text, params))
 }

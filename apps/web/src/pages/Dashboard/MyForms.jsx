@@ -283,13 +283,13 @@ export default function MyForms() {
 
           {/* ── Grid ───────────────────────────────── */}
           {loading && (
-            <div className="grid grid-cols-2 gap-[18px] items-stretch max-[800px]:grid-cols-1">
+            <div className="grid grid-cols-4 gap-[18px] items-stretch max-[800px]:grid-cols-1">
               {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
             </div>
           )}
 
           {!loading && filtered.length > 0 && (
-            <div className="grid grid-cols-2 gap-[18px] items-stretch max-[800px]:grid-cols-1">
+            <div className="grid grid-cols-4 gap-[18px] items-stretch max-[800px]:grid-cols-1">
               {filtered.map((form, index) => {
                 const banner = form.form_banner ?? form.banner;
                 const cat    = form.category ?? "";
