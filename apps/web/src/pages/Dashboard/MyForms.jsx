@@ -112,9 +112,9 @@ function CreateModal({ onClose, onCreated }) {
 
           <div>
             <label className="block text-[11px] font-bold text-[#4d6a82] uppercase tracking-wider mb-1.5">Banner Form</label>
-            <label className="relative w-full h-[72px] border-2 border-dashed border-[#c5dce8] rounded-lg flex flex-col items-center justify-center gap-1 cursor-pointer bg-[#f4fafd] hover:border-[#3d91b2] hover:bg-[#edf6fb] transition-all overflow-hidden">
+            <label className="relative w-full border-2 border-dashed border-[#c5dce8] rounded-lg flex flex-col items-center justify-center gap-1 cursor-pointer bg-[#f4fafd] hover:border-[#3d91b2] hover:bg-[#edf6fb] transition-all overflow-hidden" style={{ minHeight: preview ? "auto" : "72px" }}>
               {preview
-                ? <img src={preview} className="absolute inset-0 w-full h-full object-cover" alt="preview" />
+                ? <img src={preview} className="w-full h-auto object-contain rounded-lg" alt="preview" style={{ maxHeight: "160px" }} />
                 : <>
                     <span className="text-[20px] leading-none">🖼️</span>
                     <span className="text-[11px] text-[#7290a9]">Klik untuk upload (JPG/PNG/WEBP, maks 5MB)</span>
@@ -304,7 +304,7 @@ export default function MyForms() {
                     onClick={() => navigate(`/form/${form.form_slug}`)}
                   >
                     {/* Image */}
-                    <div className={`relative w-full overflow-hidden bg-[#dcecf4] ${large ? "h-[178px]" : "h-[145px]"}`}>
+                    <div className="relative w-full overflow-hidden bg-[#dcecf4]" style={{ aspectRatio: "16/9" }}>
                       {banner ? (
                         <img src={`${FORM_API_URL}${banner}`} alt={form.form_title}
                           className="w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-300"
