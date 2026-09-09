@@ -13,6 +13,7 @@ import Trash          from "./pages/Dashboard/Trash";
 import Profile        from "./pages/Dashboard/Profile";
 import History        from "./pages/Dashboard/History";
 import Collaborate    from "./pages/Dashboard/Collaborate";
+import Discovery      from "./pages/Dashboard/Discovery";
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -29,15 +30,16 @@ function AuthRoute({ children }) {
 const AUTH_PATHS = ["/login", "/register", "/forgot-password", "/fill/"];
 
 /* ── Nav order untuk arah slide ─────────────────────────────── */
-const NAV = ["/", "/home", "/my-forms", "/history", "/trash", "/profile"];
+const NAV = ["/", "/home", "/my-forms", "/discovery", "/history", "/trash", "/profile"];
 
 function getNavIndex(pathname) {
   let i = NAV.indexOf(pathname);
   if (i !== -1) return i;
   if (pathname.startsWith("/my-forms")) return 2;
-  if (pathname.startsWith("/history"))  return 3;
-  if (pathname.startsWith("/trash"))    return 4;
-  if (pathname.startsWith("/profile"))  return 5;
+  if (pathname.startsWith("/discovery")) return 3;
+  if (pathname.startsWith("/history"))  return 4;
+  if (pathname.startsWith("/trash"))    return 5;
+  if (pathname.startsWith("/profile"))  return 6;
   return -1;
 }
 
@@ -165,6 +167,7 @@ function PageContent({ location }) {
       <Route path="/form/:slug" element={<ProtectedRoute><FormEditor /></ProtectedRoute>} />
       <Route path="/fill/:slug"             element={<ProtectedRoute><FillForm /></ProtectedRoute>} />
       <Route path="/history"                element={<ProtectedRoute><History /></ProtectedRoute>} />
+      <Route path="/discovery"              element={<ProtectedRoute><Discovery /></ProtectedRoute>} />
       <Route path="/form/:slug/collaborate" element={<ProtectedRoute><Collaborate /></ProtectedRoute>} />
       <Route path="/trash"      element={<ProtectedRoute><Trash /></ProtectedRoute>} />
       <Route path="/profile"    element={<ProtectedRoute><Profile /></ProtectedRoute>} />
