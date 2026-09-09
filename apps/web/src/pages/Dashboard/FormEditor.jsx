@@ -5,7 +5,7 @@ import api, { FORM_API_URL } from "../../utils/api";
 import AlertModal from "../../components/AlertModal";
 import * as XLSX from "xlsx";
 import { socket } from "../../utils/socket";
-import { ArrowLeft, Link2, Trash2, Plus, Copy, Share2, Check, ListPlus, FileQuestion, FileText, UploadCloud, GripVertical, ImagePlus, X, QrCode, Download, Palette, Info, BookOpen, ChevronRight } from "lucide-react";
+import { ArrowLeft, Link2, Trash2, Plus, Copy, Share2, Check, ListPlus, FileQuestion, FileText, UploadCloud, GripVertical, ImagePlus, X, QrCode, Download, Palette, Info, BookOpen, ChevronRight, IdCard, Eye, EyeOff, Paperclip, Lightbulb, AlertTriangle, Music, Lock, LockOpen, Target, Star, Inbox, Users, CheckCircle2, Clock, PieChart, Dices, PenLine, Save, RefreshCw, Timer, Trophy, Shuffle } from "lucide-react";
 import QRCode from "qrcode";
 import QuillEditor from "../../components/QuillEditor";
 import OptionQuillEditor from "../../components/OptionQuillEditor";
@@ -97,7 +97,7 @@ export default function FormEditor() {
         return [...fromDB, ...unsaved];
       });
 
-      setCollabNotice("✏️ Collaborator memperbarui soal");
+      setCollabNotice("Collaborator memperbarui soal");
       setTimeout(() => setCollabNotice(""), 4000);
     };
 
@@ -184,7 +184,7 @@ export default function FormEditor() {
         )
       );
       if (alreadyHas) {
-        showToast("⚠️ Halaman identitas sudah ada.");
+        showToast("Halaman identitas sudah ada.");
         return prev;
       }
       const newSoal = templates.map(t => ({
@@ -196,7 +196,7 @@ export default function FormEditor() {
       }));
       return [...newSoal, ...prev];
     });
-    showToast("✅ Template identitas ditambahkan di halaman 1!");
+    showToast("Template identitas ditambahkan di halaman 1!");
   }
   function updateQ(idx, field, val) {
     setQuestions((prev) => {
@@ -434,7 +434,7 @@ export default function FormEditor() {
       await loadForm();
     } catch (e) {
       setError(e.message || "Gagal menyimpan soal.");
-      showToast("❌ " + (e.message || "Gagal menyimpan soal."));
+      showToast(e.message || "Gagal menyimpan soal.");
     }
     finally {
       setSaving(false);
@@ -491,7 +491,9 @@ export default function FormEditor() {
     <div className="flex h-screen overflow-hidden" style={{ background: "linear-gradient(135deg, var(--fm-bg) 0%, var(--fm-bg-2) 60%, var(--fm-bg-3) 100%)" }}>
       <div className="flex-1 flex items-center justify-center text-center px-4">
         <div>
-          <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center text-2xl mx-auto mb-4">😕</div>
+          <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
+            <FileQuestion size={22} className="text-gray-400" />
+          </div>
           <p className="font-semibold text-gray-700">{error}</p>
           <button onClick={() => navigate("/my-forms")} className="mt-4 px-5 py-2.5 rounded-xl text-white text-sm font-semibold"
             style={{ backgroundColor: "#1a4fa0" }}>Kembali</button>
@@ -783,7 +785,7 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddIdent
         onClick={onAddIdentityPage}
         className="w-full py-4 rounded-2xl border-2 border-dashed border-emerald-200 text-emerald-600 hover:border-emerald-400 hover:bg-emerald-50 text-[14px] font-semibold transition-all flex items-center justify-center gap-2"
       >
-        <span className="text-lg">🪪</span> Tambah Halaman Identitas (Nama, Kelas, dst.)
+        <IdCard size={18} /> Tambah Halaman Identitas (Nama, Kelas, dst.)
       </button>
 
       {/* Import dari Word */}
@@ -848,7 +850,7 @@ function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField
                 : "bg-white border-gray-200 text-gray-400 hover:border-[#1a4fa0] hover:text-[#1a4fa0]"
             }`}
           >
-            <span>{showPreview ? "👁️" : "👁️"}</span>
+            {showPreview ? <Eye size={13} /> : <EyeOff size={13} />}
             {showPreview ? "Sembunyikan Preview" : "Live Preview"}
           </button>
         </div>
@@ -896,7 +898,7 @@ function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField
               <span className="text-[11px] text-gray-400">Soal dengan ID group sama = ditampilkan bersama</span>
               {question.group_id && (
                 <button onClick={() => { onUpdate("group_id", null); onUpdate("group_text", null); }}
-                  className="text-[11px] text-red-400 hover:text-red-600 transition ml-auto">✕ Hapus group</button>
+                  className="inline-flex items-center gap-1 text-[11px] text-red-400 hover:text-red-600 transition ml-auto"><X size={11} /> Hapus group</button>
               )}
             </div>
             {question.group_id && (
@@ -970,7 +972,7 @@ function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField
                       }}
                     />
                   </label>
-                  <button onClick={() => onRemoveOpt(oIdx)} className="w-8 h-8 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all flex items-center justify-center shrink-0">✕</button>
+                  <button onClick={() => onRemoveOpt(oIdx)} className="w-8 h-8 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all flex items-center justify-center shrink-0"><X size={13} /></button>
                 </div>
                 {/* Preview gambar opsi */}
                 {previewUrl && (
@@ -1014,7 +1016,7 @@ function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField
         <div className="ml-2 mb-4 space-y-3">
           {/* Attachment soal — pembuat bisa upload file soal/cerita */}
           <div>
-            <p className="text-[12px] font-semibold text-[#1a4fa0] uppercase tracking-wide mb-1.5">📎 Lampiran Soal (opsional)</p>
+            <p className="text-[12px] font-semibold text-[#1a4fa0] uppercase tracking-wide mb-1.5 flex items-center gap-1.5"><Paperclip size={12} /> Lampiran Soal (opsional)</p>
             <p className="text-[11.5px] text-gray-400 mb-2">Upload file soal/cerita yang akan ditampilkan kepada responden saat mengisi form.</p>
             <label className="flex items-center gap-3 w-full rounded-xl border-2 border-dashed border-[#c3d4e4] bg-[#f7fafd] py-3 px-4 cursor-pointer hover:border-[#1a4fa0] hover:bg-[#f0f6fe] transition-all">
               {question.attachment ? (
@@ -1037,7 +1039,7 @@ function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField
 
           {/* Info jawaban file */}
           <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-blue-50 border border-blue-100">
-            <span className="text-[16px] shrink-0 mt-0.5">💡</span>
+            <Lightbulb size={15} className="text-blue-500 shrink-0 mt-0.5" />
             <p className="text-[12px] text-blue-700 leading-relaxed">
               <strong>Jawaban responden</strong> akan dikumpulkan dalam bentuk file upload. Responden akan diminta untuk mengunggah file sebagai jawaban mereka.
             </p>
@@ -1048,7 +1050,7 @@ function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField
       {/* Warning: audio + gambar di teks tidak bisa bersamaan */}
       {(question.audioFile || question.audio) && /<img/i.test(question.question || "") && (
         <div className="mb-4 flex items-start gap-2.5 px-4 py-3 rounded-xl bg-amber-50 border border-amber-300">
-          <span className="text-amber-500 shrink-0 mt-0.5">⚠️</span>
+          <AlertTriangle size={15} className="text-amber-500 shrink-0 mt-0.5" />
           <p className="text-[12.5px] text-amber-700 leading-relaxed">
             <strong>Konflik audio + gambar:</strong> Soal ini memiliki audio dan gambar di teks sekaligus. Saat disimpan akan error. Hapus gambar dari teks dan gunakan fitur <strong>Lampiran Soal</strong> sebagai gantinya.
           </p>
@@ -1058,11 +1060,11 @@ function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField
       {/* ── Audio Lampiran (semua tipe soal) ───────────────────── */}
       <div className="mt-4 mb-1">
         <p className="text-[12px] font-extrabold text-[#1a4fa0] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-          🎵 Audio Soal <span className="normal-case font-normal text-gray-400">(opsional)</span>
+          <span className="inline-flex items-center gap-1.5">Audio Soal <span className="normal-case font-normal text-gray-400">(opsional)</span></span>
         </p>
         {question.audioFile || question.audio ? (
           <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-purple-50 border border-purple-200">
-            <span className="text-purple-600 shrink-0">🎵</span>
+            <Music size={16} className="text-purple-600 shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-semibold text-purple-700 truncate">
                 {question.audioFile?.name ?? question.audio?.split("/").pop()}
@@ -1084,7 +1086,7 @@ function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField
           </div>
         ) : (
           <label className="flex items-center gap-3 w-full rounded-xl border-2 border-dashed border-[#c3d4e4] bg-[#f7fafd] py-3 px-4 cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-all">
-            <span className="text-[20px] shrink-0">🎵</span>
+            <Music size={20} className="text-purple-500 shrink-0" />
             <span className="text-[13px] text-gray-500">Klik untuk upload audio (mp3, wav, ogg, m4a)</span>
             <input
               type="file"
@@ -1122,7 +1124,7 @@ function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField
                 : "text-gray-300 hover:bg-[#eef5fb] hover:text-[#1a4fa0]"
             }`}
           >
-            {isLocked ? <span className="text-[16px]">🔒</span> : <span className="text-[16px]">🔓</span>}
+            {isLocked ? <Lock size={16} /> : <LockOpen size={16} />}
           </button>
         </div>
 
@@ -1130,12 +1132,12 @@ function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField
           {/* Score badge — tampil sesuai tipe score */}
           {scoreType === "genius" && totalSoal > 0 && (
             <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-[11px] font-bold text-indigo-700">
-              🎯 {(100 / totalSoal).toFixed(1)} pts
+              <Target size={12} /> {(100 / totalSoal).toFixed(1)} pts
             </span>
           )}
           {scoreType === "manual" && (
             <div className="flex items-center gap-1.5">
-              <span className="text-[12px] font-semibold text-amber-600">⭐ Score:</span>
+              <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-amber-600"><Star size={12} /> Score:</span>
               <input
                 type="number" min="0" max="100"
                 value={question.score ?? 0}
@@ -1399,7 +1401,7 @@ function ResponsesTab({ formId, form }) {
         {/* EMPTY */}
         {!loading && total === 0 && (
           <div className="py-16 text-center text-[#7384a4]">
-            <div className="text-[40px] mb-2">📭</div>
+            <Inbox size={36} className="mx-auto mb-2 text-[#b6c4dc]" />
             <h4 className="m-0 mb-1 text-[15px] font-bold text-[#142d63]">Belum ada respons</h4>
             <p className="m-0 text-[12px]">Bagikan link form untuk mulai mengumpulkan respons.</p>
           </div>
@@ -1414,13 +1416,13 @@ function ResponsesTab({ formId, form }) {
             {/* STATISTICS */}
             <div className="grid grid-cols-4 gap-[15px] p-[22px] pb-[10px] max-[900px]:grid-cols-2">
               {[
-                { icon: "♙", color: "bg-[#edf4ff] text-[#075ee0]", label: "Total Respon",        value: total,  sub: "responden" },
-                { icon: "✓", color: "bg-[#eafaf3] text-[#18ae70]", label: "Tingkat Penyelesaian", value: "100%", sub: "selesai" },
-                { icon: "◷", color: "bg-[#fff5e8] text-[#ee941c]", label: "Rata-rata Waktu",      value: "—",    sub: "menit" },
-                { icon: "◔", color: "bg-[#f5edff] text-[#8e4de7]", label: "Selesai Hari Ini",    value: 0,      sub: "responden" },
+                { icon: Users,       color: "bg-[#edf4ff] text-[#075ee0]", label: "Total Respon",        value: total,  sub: "responden" },
+                { icon: CheckCircle2, color: "bg-[#eafaf3] text-[#18ae70]", label: "Tingkat Penyelesaian", value: "100%", sub: "selesai" },
+                { icon: Clock,       color: "bg-[#fff5e8] text-[#ee941c]", label: "Rata-rata Waktu",      value: "—",    sub: "menit" },
+                { icon: PieChart,    color: "bg-[#f5edff] text-[#8e4de7]", label: "Selesai Hari Ini",    value: 0,      sub: "responden" },
               ].map((s, i) => (
                 <div key={i} className="min-h-[110px] border border-[#e7edf6] rounded-xl p-[17px] flex items-center gap-[15px] bg-white">
-                  <div className={`w-[43px] h-[43px] shrink-0 flex items-center justify-center rounded-[9px] text-[20px] ${s.color}`}>{s.icon}</div>
+                  <div className={`w-[43px] h-[43px] shrink-0 flex items-center justify-center rounded-[9px] ${s.color}`}><s.icon size={20} /></div>
                   <div>
                     <p className="m-0 mb-1 text-[10px] text-[#64779d]">{s.label}</p>
                     <h3 className="m-0 text-[23px] font-bold text-[#142d63]">{s.value}</h3>
@@ -1842,7 +1844,7 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setTokenMsg("✅ Token berhasil disimpan!");
+        setTokenMsg("Token berhasil disimpan!");
         setTokenActive(active);
         onSaved?.({
           duration: duration ? Number(duration) : null,
@@ -1878,7 +1880,7 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
         }),
       });
       const data = await res.json().catch(() => ({}));
-      setTimerMsg(res.ok ? "✅ Berhasil disimpan!" : (data?.message || "Gagal menyimpan."));
+      setTimerMsg(res.ok ? "Berhasil disimpan!" : (data?.message || "Gagal menyimpan."));
       if (res.ok) onSaved?.({
         duration: duration ? Number(duration) : null,
         start_at: startAt ? new Date(startAt).getTime() : null,
@@ -1903,7 +1905,7 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
         }),
       });
       const data = await res.json().catch(() => ({}));
-      setShuffleMsg(res.ok ? `✅ Shuffle ${val ? "diaktifkan" : "dinonaktifkan"}` : (data?.message || "Gagal."));
+      setShuffleMsg(res.ok ? `Shuffle ${val ? "diaktifkan" : "dinonaktifkan"}` : (data?.message || "Gagal."));
       if (res.ok) onSaved?.({ is_random: val });
     } catch { setShuffleMsg("Gagal menyimpan."); }
     finally { setShuffleSaving(false); setTimeout(() => setShuffleMsg(""), 3000); }
@@ -1924,7 +1926,7 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
           body: fd,
         });
       }
-      setScoreMsg(`✅ Genius Score (${perSoal} pts/soal) berhasil disimpan!`);
+      setScoreMsg(`Genius Score (${perSoal} pts/soal) berhasil disimpan!`);
     } catch { setScoreMsg("Gagal menyimpan score."); }
     finally { setScoreSaving(false); setTimeout(() => setScoreMsg(""), 4000); }
   }
@@ -1952,29 +1954,93 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
       </div>
 
       {/* Token Responden */}
-      <div className="bg-white rounded-2xl border border-[#e5eef7] shadow-sm p-6">
-        <div className="flex items-center gap-3">
-          <span className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-lg shrink-0">🔐</span>
-          <div className="flex-1">
-            <p className="font-bold text-gray-700 text-[15px]">Token Responden</p>
-            <p className="text-[13px] text-gray-400 mt-0.5">
-              {form?.token_respon
-                ? <span>Token aktif: <strong className="font-mono text-[#1a4fa0]">{form.token_respon}</strong></span>
-                : "Tidak ada token — form dapat diisi siapa saja."
-              }
-            </p>
-            <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1 mt-2 inline-block">
-              ⚠️ Token hanya bisa diatur saat membuat form baru
-            </p>
+      <div className="bg-white rounded-2xl border border-[#e5eef7] shadow-sm p-6 space-y-4">
+        {/* Header row */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0"><LockKeyhole size={18} className="text-blue-500" /></span>
+            <div>
+              <p className="font-bold text-gray-700 text-[15px]">Token Responden</p>
+              <p className="text-[13px] text-gray-400 mt-0.5">
+                {tokenActive
+                  ? <span>Token aktif — responden wajib memasukkan kode.</span>
+                  : "Tidak ada token — form dapat diisi siapa saja."
+                }
+              </p>
+            </div>
           </div>
+          <Toggle value={tokenActive} onChange={v => {
+            if (!v) { saveToken(false, ""); }
+            else { setTokenActive(true); }
+          }} />
         </div>
+
+        {/* Edit area — tampil saat token aktif */}
+        {tokenActive && (
+          <div className="space-y-3 pt-1">
+            {/* Mode selector */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setTokenMode("random")}
+                className={`px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition ${tokenMode === "random" ? "bg-[#1a4fa0] text-white border-[#1a4fa0]" : "bg-white text-gray-500 border-gray-200 hover:border-[#1a4fa0]"}`}
+              ><Dices size={14} className="inline-block mr-1 align-[-2px]" />Acak Otomatis</button>
+              <button
+                onClick={() => setTokenMode("manual")}
+                className={`px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition ${tokenMode === "manual" ? "bg-[#1a4fa0] text-white border-[#1a4fa0]" : "bg-white text-gray-500 border-gray-200 hover:border-[#1a4fa0]"}`}
+              ><PenLine size={14} className="inline-block mr-1 align-[-2px]" />Ketik Manual</button>
+            </div>
+
+            {/* Input area */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={tokenValue}
+                readOnly={tokenMode === "random"}
+                onChange={e => setTokenValue(e.target.value.toUpperCase())}
+                placeholder="Token belum dibuat"
+                maxLength={20}
+                className={`flex-1 border rounded-xl px-3.5 py-2.5 text-[14px] font-mono outline-none transition focus:border-[#1a4fa0] focus:ring-2 focus:ring-[#1a4fa0]/10 ${tokenMode === "random" ? "bg-gray-50 text-gray-500 border-gray-200 cursor-default" : "bg-white text-gray-800 border-gray-300"}`}
+              />
+              {tokenMode === "random" && (
+                <button
+                  onClick={() => setTokenValue(generateRandomToken())}
+                  className="px-3.5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-[13px] font-semibold border border-gray-200 transition"
+                  title="Generate token baru"
+                ><RefreshCw size={15} /></button>
+              )}
+            </div>
+
+            {/* Tombol simpan */}
+            <button
+              onClick={() => saveToken(true, tokenMode === "random" ? tokenValue : tokenValue.trim())}
+              disabled={tokenSaving || !tokenValue.trim()}
+              className="w-full py-2.5 rounded-xl text-white text-[13px] font-semibold disabled:opacity-50 transition hover:opacity-90"
+              style={{ background: "linear-gradient(135deg,#1a4fa0,#2563eb)" }}
+            >
+              {tokenSaving ? "Menyimpan..." : <><Save size={14} className="inline-block mr-1 align-[-2px]" />Simpan Token</>}
+            </button>
+
+            {tokenMsg && (
+              <p className={`text-[12px] font-medium ${tokenMsg.includes("berhasil") ? "text-green-600" : "text-red-500"}`}>
+                {tokenMsg}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Pesan saat token nonaktif */}
+        {!tokenActive && tokenMsg && (
+          <p className={`text-[12px] font-medium ${tokenMsg.includes("berhasil") ? "text-green-600" : "text-red-500"}`}>
+            {tokenMsg}
+          </p>
+        )}
       </div>
 
       {/* Score / Penilaian — hanya untuk kuis */}
       {isQuiz && (
         <div className="bg-white rounded-2xl border border-[#e5eef7] shadow-sm p-6 space-y-4">
           <div className="flex items-center gap-3 mb-1">
-            <span className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-lg shrink-0">🏆</span>
+            <span className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0"><Trophy size={18} className="text-indigo-500" /></span>
             <div>
               <p className="font-bold text-gray-700 text-[15px]">Penilaian / Score</p>
               <p className="text-[13px] text-gray-400">Atur sistem penilaian untuk kuis ini</p>
@@ -1996,14 +2062,15 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
 
           {scoreType === "genius" && (
             <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-              <p className="text-[13px] text-indigo-700 font-medium mb-1">
-                🎯 Setiap soal mendapat <strong>{questions.length > 0 ? (100 / questions.length).toFixed(1) : "—"} pts</strong> (total 100 pts)
+              <p className="text-[13px] text-indigo-700 font-medium mb-1 flex items-center gap-1.5">
+                <Target size={14} className="shrink-0" />
+                <span>Setiap soal mendapat <strong>{questions.length > 0 ? (100 / questions.length).toFixed(1) : "—"} pts</strong> (total 100 pts)</span>
               </p>
               <p className="text-[12px] text-indigo-500 mb-3">Skor dibagi rata ke {questions.length} soal secara otomatis.</p>
               <button onClick={saveGeniusScore} disabled={scoreSaving || !questions.length}
                 className="px-4 py-2 rounded-xl text-white text-[13px] font-semibold disabled:opacity-50 transition hover:opacity-90"
                 style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)" }}>
-                {scoreSaving ? "Menyimpan..." : "💾 Simpan Genius Score"}
+                {scoreSaving ? "Menyimpan..." : <><Save size={14} className="inline-block mr-1 align-[-2px]" />Simpan Genius Score</>}
               </button>
               {scoreMsg && <p className="text-[12px] mt-2 text-indigo-700 font-medium">{scoreMsg}</p>}
             </div>
@@ -2011,8 +2078,9 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
 
           {scoreType === "manual" && (
             <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
-              <p className="text-[13px] text-amber-700 font-medium mb-2">
-                ⭐ Atur skor manual langsung di setiap soal di tab <strong>Pertanyaan</strong>.
+              <p className="text-[13px] text-amber-700 font-medium mb-2 flex items-center gap-1.5">
+                <Star size={14} className="shrink-0" />
+                <span>Atur skor manual langsung di setiap soal di tab <strong>Pertanyaan</strong>.</span>
               </p>
               <p className="text-[12px] text-amber-600">Setiap soal memiliki input score sendiri.</p>
               {scoreMsg && <p className="text-[12px] mt-2 text-amber-700 font-medium">{scoreMsg}</p>}
@@ -2026,7 +2094,7 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
         <div className="bg-white rounded-2xl border border-[#e5eef7] shadow-sm p-6">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <span className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-lg shrink-0">🔀</span>
+              <span className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center shrink-0"><Shuffle size={18} className="text-purple-500" /></span>
               <div>
                 <p className="font-bold text-gray-700 text-[15px]">Acak Urutan Soal</p>
                 <p className="text-[13px] text-gray-400">Setiap responden mendapat urutan soal yang berbeda</p>
@@ -2048,7 +2116,7 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
       {/* Timer */}
       <div className="bg-white rounded-2xl border border-[#e5eef7] shadow-sm p-6 space-y-4">
         <div className="flex items-center gap-3 mb-1">
-          <span className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-lg shrink-0">⏱️</span>
+          <span className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0"><Timer size={18} className="text-blue-500" /></span>
           <div>
             <p className="font-bold text-gray-700 text-[15px]">Timer Pengerjaan</p>
             <p className="text-[13px] text-gray-400">Atur waktu mulai dan durasi pengerjaan form</p>
@@ -2082,7 +2150,7 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
       {/* Presentasi */}
       <div className="bg-white rounded-2xl border border-[#e5eef7] shadow-sm p-6 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <span className="w-10 h-10 rounded-xl bg-[#eef5fb] flex items-center justify-center text-lg shrink-0">🎨</span>
+          <span className="w-10 h-10 rounded-xl bg-[#eef5fb] flex items-center justify-center shrink-0"><Palette size={18} className="text-[#1a4fa0]" /></span>
           <div>
             <p className="font-bold text-gray-700 text-[15px]">Presentasi</p>
             <p className="text-[13px] text-gray-400">Pengaturan tampilan formulir</p>
