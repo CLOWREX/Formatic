@@ -566,7 +566,11 @@ export default function FormEditor() {
 
         {/* ── Tabs ──────────────────────────────────────── */}
         <div className="flex gap-1 px-4 md:px-6 xl:px-9 border-b border-[#dae6f1] bg-white/95 backdrop-blur shrink-0 overflow-x-auto">
-          {TABS.map((tab) => (
+          {TABS.filter(tab => {
+            // Collaborator hanya bisa akses Pertanyaan
+            if (userRole === "Collaborator") return tab === "Pertanyaan";
+            return true;
+          }).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
