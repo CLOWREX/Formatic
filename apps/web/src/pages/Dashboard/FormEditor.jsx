@@ -614,6 +614,8 @@ export default function FormEditor() {
                 setTimeout(() => { isSavingRef.current = false; }, 1000);
               }}
               onImportGuard={(v) => { isSavingRef.current = v; }}
+              hasUnsaved={questions.some(q => q._new)}
+              onSaveFirst={saveQuestions}
             />
           )}
           {activeTab === "Jawaban" && (
@@ -667,7 +669,7 @@ export default function FormEditor() {
 }
 
 /* ── Pertanyaan Tab ─────────────────────────────────────────── */
-function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddIdentityPage, onUpdateQ, onUpdateOpt, onUpdateOptField, onAddOpt, onRemoveOpt, onRemoveQ, onDuplicateQ, onToggleCorrect, onReorder, onCopyLink, onShowToast, onImported, onImportedSilent, onImportGuard }) {
+function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddIdentityPage, onUpdateQ, onUpdateOpt, onUpdateOptField, onAddOpt, onRemoveOpt, onRemoveQ, onDuplicateQ, onToggleCorrect, onReorder, onCopyLink, onShowToast, onImported, onImportedSilent, onImportGuard, hasUnsaved, onSaveFirst }) {
   const [dragFrom, setDragFrom] = useState(null);
   const [dragOver, setDragOver] = useState(null);
   // Baca scoreType dari localStorage supaya badge score realtime ikut berubah
@@ -789,7 +791,7 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddIdent
       </button>
 
       {/* Import dari Word */}
-      <ImportDocxButton slug={slug} onImported={onImported} onImportedSilent={onImportedSilent} onImportGuard={onImportGuard} />
+      <ImportDocxButton slug={slug} onImported={onImported} onImportedSilent={onImportedSilent} onImportGuard={onImportGuard} hasUnsaved={hasUnsaved} onSaveFirst={onSaveFirst} />
     </div>
   );
 }
@@ -2181,8 +2183,9 @@ function Toggle({ value, onChange }) {
 }
 
 /* ── Import Docx Button & Template Download ─────────────────────────────────────── */
-function ImportDocxButton({ slug, onImported, onImportedSilent, onImportGuard }) {
+function ImportDocxButton({ slug, onImported, onImportedSilent, onImportGuard, hasUnsaved, onSaveFirst }) {
   const [importing, setImporting] = useState(false);
+  const [savingFirst, setSavingFirst] = useState(false);
   const [alertState, setAlertState] = useState({ open: false, type: "info", title: "", message: "" });
   const [toast, setToast] = useState("");
 
@@ -2195,6 +2198,13 @@ function ImportDocxButton({ slug, onImported, onImportedSilent, onImportGuard })
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+
+    // Auto-save soal yang belum tersimpan (identitas dll) sebelum import
+    if (hasUnsaved && onSaveFirst) {
+      setSavingFirst(true);
+      try { await onSaveFirst(); } catch {}
+      setSavingFirst(false);
+    }
 
     // Validasi Ekstensi & MIME
     if (!file.name.toLowerCase().endsWith(".docx")) {
@@ -2273,7 +2283,12 @@ function ImportDocxButton({ slug, onImported, onImportedSilent, onImportGuard })
               ? "border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50"
               : "border-[#c7d8e8] bg-white text-gray-600 hover:border-[#1a4fa0] hover:text-[#1a4fa0]"
           }`}>
-            {importing ? (
+            {savingFirst ? (
+              <>
+                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                Menyimpan soal dulu...
+              </>
+            ) : importing ? (
               <>
                 <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
                 Mengimpor soal...
@@ -2283,7 +2298,7 @@ function ImportDocxButton({ slug, onImported, onImportedSilent, onImportGuard })
                 <UploadCloud size={17} /> Impor Soal dari Word (.docx)
               </>
             )}
-            <input type="file" accept=".docx" onChange={handleFile} disabled={importing} className="hidden" />
+            <input type="file" accept=".docx" onChange={handleFile} disabled={importing || savingFirst} className="hidden" />
           </label>
           {/* Info button — panduan struktur template */}
           <button
