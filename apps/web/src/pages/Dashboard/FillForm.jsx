@@ -451,7 +451,8 @@ export default function FillForm() {
 
     if (!form?.is_random) return pages;
 
-    // Shuffle: page pertama (identitas) TIDAK diacak, page 2+ diacak
+    // Shuffle: page pertama (identitas/page 1) TIDAK diacak
+    // Soal dalam group_id yang sama bergerak bersama dan tidak diacak urutannya internal
     function shuffleArr(arr) {
       const a = [...arr];
       for (let i = a.length - 1; i > 0; i--) {
@@ -460,9 +461,27 @@ export default function FillForm() {
       }
       return a;
     }
-    const firstPage = pages.slice(0, 1);
+    const firstPage = pages.slice(0, 1); // identitas, tidak diacak
     const restPages = pages.slice(1);
-    return [...firstPage, ...shuffleArr(restPages)];
+
+    // Setiap page soal: acak berdasarkan group unit
+    const shuffledRest = restPages.map(pg => {
+      const soalList = pg.soal ?? [];
+      const units = [];
+      const groupMap = new Map();
+      soalList.forEach(s => {
+        if (s.group_id != null) {
+          if (!groupMap.has(s.group_id)) groupMap.set(s.group_id, []);
+          groupMap.get(s.group_id).push(s);
+        } else {
+          units.push([s]);
+        }
+      });
+      groupMap.forEach(group => units.push(group));
+      return { ...pg, soal: shuffleArr(units).flat() };
+    });
+
+    return [...firstPage, ...shuffledRest];
   }, [form?.soal, form?.is_random, form?.slug, form?.category]);
 
   const allSoal = soalList;
