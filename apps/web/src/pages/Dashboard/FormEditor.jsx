@@ -615,7 +615,29 @@ export default function FormEditor() {
               }}
               onImportGuard={(v) => { isSavingRef.current = v; }}
               hasUnsaved={questions.some(q => q._new)}
-              onSaveFirst={saveQuestions}
+              onSaveFirst={async () => {
+                // Simpan hanya soal _new (identitas) tanpa validasi penuh
+                const token = localStorage.getItem("token");
+                const newOnes = questions.filter(q => q._new && q.question);
+                if (newOnes.length === 0) return;
+                const fd = new FormData();
+                const payload = newOnes.map((q, i) => {
+                  const globalIdx = questions.findIndex(x => x === q);
+                  const isQuiz = form?.category === "ujian";
+                  const pageVal = isQuiz ? (globalIdx + 1) : 1;
+                  return {
+                    soal: { question: q.question, type: q.type || "text", page: pageVal, score: q.score ?? null },
+                    options: [],
+                  };
+                });
+                fd.append("data", JSON.stringify(payload));
+                await fetch(`${FORM_API_URL}/form/soal?form_slug=${slug}`, {
+                  method: "POST",
+                  headers: { Authorization: `Bearer ${token}` },
+                  body: fd,
+                });
+                setQuestions(prev => prev.filter(q => !q._new));
+              }}
             />
           )}
           {activeTab === "Jawaban" && (
