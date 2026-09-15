@@ -424,19 +424,10 @@ export default function FillForm() {
   const pageGroups = useMemo(() => {
     if (!form) return [];
 
-    // Survey: tampilkan semua soal dalam 1 halaman
-    // isQuiz: primary_kategori = ujian
-    if ((form?.primary_kategori ?? form?.category) !== "ujian") {
-      const flat = (form?.soal ?? []).length > 0 && (form?.soal ?? [])[0]?.soal
-        ? (form?.soal ?? []).flatMap(p => p.soal ?? [])
-        : (form?.soal ?? []);
-      return [{ page: 1, soal: flat }];
-    }
-
     const raw = form?.soal ?? [];
     const rFlat = raw.length > 0 && raw[0]?.soal ? raw : null;
 
-    // Bangun pages
+    // Bangun pages untuk semua form (ujian maupun survei)
     let pages = [];
     if (rFlat) {
       pages = [...rFlat]
@@ -451,6 +442,10 @@ export default function FillForm() {
       }
       pages = Object.keys(groups).map(Number).sort((a,b) => a - b)
         .map(p => ({ page: p, soal: groups[p] }));
+    }
+
+    if (pages.length === 0 && raw.length > 0) {
+      pages = [{ page: 1, soal: raw }];
     }
 
     if (!form?.is_random) return pages;
