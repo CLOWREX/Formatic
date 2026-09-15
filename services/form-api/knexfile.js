@@ -8,7 +8,7 @@ module.exports = {
   development: {
     client: 'pg',
     connection: {
-      database: process.env.DB_NAME,
+      database: process.env.DB_NAME_FORM,
       user: process.env.DB_USER,
       password: process.env.DB_PASS,
       host: process.env.DB_HOST,
@@ -22,5 +22,23 @@ module.exports = {
       directory: './seeder'
     }
   },
+
+  production: {
+    client: 'pg',
+    connection: {
+      database: process.env.DB_NAME_FORM,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASS,
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT,
+      // ssl: { rejectUnauthorized: false }
+    },
+    migrations: {
+      directory: './migration'
+    },
+    seeds: {
+      directory: './seeder'
+    }
+  },  
 
 };
