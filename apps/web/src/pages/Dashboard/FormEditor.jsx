@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
-import api, { FORM_API_URL } from "../../utils/api";
+import api, { FORM_API_URL, flattenForm } from "../../utils/api";
 import AlertModal from "../../components/AlertModal";
 import * as XLSX from "xlsx";
 import { socket } from "../../utils/socket";
@@ -115,19 +115,22 @@ export default function FormEditor() {
     setError("");
     try {
       const res = await api.get("/form/slug", { params: { slug } });
-      const f   = res.data?.data;
+      const rawData = res.data?.data;
+      // Response baru: { form: {...formPayload}, soal: [...] }
+      // Response lama: flat object dengan soal embedded
+      const f    = rawData?.form ? { ...flattenForm(rawData.form), soal: rawData.soal } : rawData;
+      const soalData = rawData?.soal ?? rawData?.form?.soal ?? [];
+
       if (f) {
-        setForm(f);
+        setForm({ ...f, soal: soalData });
         setQuestions(prev => {
-          // Backend return soal sebagai array of { page, soal: [...] } atau flat array
+          // soal dari response baru ada di soalData (array of { page, soal[] })
           let soalFlat = [];
-          if (Array.isArray(f?.soal)) {
-            // Cek apakah format baru (array of pages) atau lama (flat)
-            if (f.soal.length > 0 && f.soal[0]?.soal) {
-              // Format baru: { page, soal: [] }[]
-              soalFlat = f.soal.flatMap(p => p.soal ?? []);
+          if (Array.isArray(soalData)) {
+            if (soalData.length > 0 && soalData[0]?.soal) {
+              soalFlat = soalData.flatMap(p => p.soal ?? []);
             } else {
-              soalFlat = f.soal;
+              soalFlat = soalData;
             }
           }
           const fromDB = soalFlat.map((s) => ({
@@ -146,11 +149,11 @@ export default function FormEditor() {
           return [...fromDB, ...unsaved];
         });
 
-        // Ambil role user untuk form ini dari endpoint my forms
+        // Ambil role user
         try {
           const myRes = await api.get("/form/user");
-          const myForms = myRes.data?.data?.forms ?? [];
-          const match = myForms.find(mf => mf.form_slug === slug);
+          const myForms = (myRes.data?.data?.forms ?? []).map(flattenForm);
+          const match = myForms.find(mf => mf.slug === slug || mf.form_slug === slug);
           setUserRole(match?.access_type ?? null);
         } catch { setUserRole(null); }
       } else {
@@ -291,7 +294,7 @@ export default function FormEditor() {
 
     // Survey: semua soal di page 1. Ujian: page = urutan soal (1-indexed)
     // Soal identitas (Nama/Kelas/Absen) selalu page 1 agar tampil bersama
-    const isQuiz = form?.category === "ujian";
+    const isQuiz = (form?.primary_kategori ?? form?.category) === "ujian";
     const IDENTITY_LABELS = ["nama lengkap", "kelas", "nomor absen", "nama", "absen"];
     const isIdentitySoal = (q) => {
       const txt = (q.question ?? "").replace(/<[^>]*>/g, "").trim().toLowerCase();
@@ -518,7 +521,7 @@ export default function FormEditor() {
             <h1 className="font-bold text-gray-900 truncate text-[17px] leading-tight">
               {form?.title ?? form?.form_title ?? "Form"}
             </h1>
-            <p className="text-[12.5px] text-gray-400 hidden sm:block">{form?.category}</p>
+            <p className="text-[12.5px] text-gray-400 hidden sm:block">{form?.sub_kategori ?? form?.category}</p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={copyLink} title="Salin link" className="hidden sm:flex w-10 h-10 rounded-xl items-center justify-center text-gray-400 hover:bg-[#eef5fb] hover:text-[#1a4fa0] transition-all">
@@ -614,6 +617,30 @@ export default function FormEditor() {
                 setTimeout(() => { isSavingRef.current = false; }, 1000);
               }}
               onImportGuard={(v) => { isSavingRef.current = v; }}
+              hasUnsaved={questions.some(q => q._new)}
+              onSaveFirst={async () => {
+                // Simpan hanya soal _new (identitas) tanpa validasi penuh
+                const token = localStorage.getItem("token");
+                const newOnes = questions.filter(q => q._new && q.question);
+                if (newOnes.length === 0) return;
+                const fd = new FormData();
+                const payload = newOnes.map((q, i) => {
+                  const globalIdx = questions.findIndex(x => x === q);
+                  const isQuiz = (form?.primary_kategori ?? form?.category) === "ujian";
+                  const pageVal = isQuiz ? (globalIdx + 1) : 1;
+                  return {
+                    soal: { question: q.question, type: q.type || "text", page: pageVal, score: q.score ?? null },
+                    options: [],
+                  };
+                });
+                fd.append("data", JSON.stringify(payload));
+                await fetch(`${FORM_API_URL}/form/soal?form_slug=${slug}`, {
+                  method: "POST",
+                  headers: { Authorization: `Bearer ${token}` },
+                  body: fd,
+                });
+                setQuestions(prev => prev.filter(q => !q._new));
+              }}
             />
           )}
           {activeTab === "Jawaban" && (
@@ -667,7 +694,7 @@ export default function FormEditor() {
 }
 
 /* ── Pertanyaan Tab ─────────────────────────────────────────── */
-function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddIdentityPage, onUpdateQ, onUpdateOpt, onUpdateOptField, onAddOpt, onRemoveOpt, onRemoveQ, onDuplicateQ, onToggleCorrect, onReorder, onCopyLink, onShowToast, onImported, onImportedSilent, onImportGuard }) {
+function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddIdentityPage, onUpdateQ, onUpdateOpt, onUpdateOptField, onAddOpt, onRemoveOpt, onRemoveQ, onDuplicateQ, onToggleCorrect, onReorder, onCopyLink, onShowToast, onImported, onImportedSilent, onImportGuard, hasUnsaved, onSaveFirst }) {
   const [dragFrom, setDragFrom] = useState(null);
   const [dragOver, setDragOver] = useState(null);
   // Baca scoreType dari localStorage supaya badge score realtime ikut berubah
@@ -789,7 +816,7 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddIdent
       </button>
 
       {/* Import dari Word */}
-      <ImportDocxButton slug={slug} onImported={onImported} onImportedSilent={onImportedSilent} onImportGuard={onImportGuard} />
+      <ImportDocxButton slug={slug} onImported={onImported} onImportedSilent={onImportedSilent} onImportGuard={onImportGuard} hasUnsaved={hasUnsaved} onSaveFirst={onSaveFirst} />
     </div>
   );
 }
@@ -1210,7 +1237,7 @@ function ResponsesTab({ formId, form }) {
     if (total === 0) { setExportAlert({ type: "alert", title: "Tidak Ada Data", message: "Belum ada data untuk diekspor." }); return; }
     setExporting(true);
     try {
-      const isQuiz = form?.category === "ujian";
+      const isQuiz = (form?.primary_kategori ?? form?.category) === "ujian";
 
       // Fetch detail jawaban per responden
       const res = await fetch(`${FORM_API_URL}/form/submit/detail?form_slug=${formSlug}`, {
@@ -1780,7 +1807,7 @@ function buildQuestionStats(responses) {
 /* ── Settings Tab ───────────────────────────────────────────── */
 function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
   const isPublic   = form?.status === "public" || form?.form_status === "public";
-  const isQuiz     = form?.category === "ujian";
+  const isQuiz     = (form?.primary_kategori ?? form?.category) === "ujian";
 
   // Token state — persist di localStorage supaya tidak hilang saat form reload
   const tokenStorageKey = `token_active_${form?.slug ?? slug}`;
@@ -2181,8 +2208,9 @@ function Toggle({ value, onChange }) {
 }
 
 /* ── Import Docx Button & Template Download ─────────────────────────────────────── */
-function ImportDocxButton({ slug, onImported, onImportedSilent, onImportGuard }) {
+function ImportDocxButton({ slug, onImported, onImportedSilent, onImportGuard, hasUnsaved, onSaveFirst }) {
   const [importing, setImporting] = useState(false);
+  const [savingFirst, setSavingFirst] = useState(false);
   const [alertState, setAlertState] = useState({ open: false, type: "info", title: "", message: "" });
   const [toast, setToast] = useState("");
 
@@ -2195,6 +2223,13 @@ function ImportDocxButton({ slug, onImported, onImportedSilent, onImportGuard })
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+
+    // Auto-save soal yang belum tersimpan (identitas dll) sebelum import
+    if (hasUnsaved && onSaveFirst) {
+      setSavingFirst(true);
+      try { await onSaveFirst(); } catch {}
+      setSavingFirst(false);
+    }
 
     // Validasi Ekstensi & MIME
     if (!file.name.toLowerCase().endsWith(".docx")) {
@@ -2273,7 +2308,12 @@ function ImportDocxButton({ slug, onImported, onImportedSilent, onImportGuard })
               ? "border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50"
               : "border-[#c7d8e8] bg-white text-gray-600 hover:border-[#1a4fa0] hover:text-[#1a4fa0]"
           }`}>
-            {importing ? (
+            {savingFirst ? (
+              <>
+                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                Menyimpan soal dulu...
+              </>
+            ) : importing ? (
               <>
                 <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
                 Mengimpor soal...
@@ -2283,7 +2323,7 @@ function ImportDocxButton({ slug, onImported, onImportedSilent, onImportGuard })
                 <UploadCloud size={17} /> Impor Soal dari Word (.docx)
               </>
             )}
-            <input type="file" accept=".docx" onChange={handleFile} disabled={importing} className="hidden" />
+            <input type="file" accept=".docx" onChange={handleFile} disabled={importing || savingFirst} className="hidden" />
           </label>
           {/* Info button — panduan struktur template */}
           <button
