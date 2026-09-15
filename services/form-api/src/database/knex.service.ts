@@ -7,7 +7,7 @@ export class KnexService {
     private db
 
     constructor(){
-        this.db = knex(config.development)
+        this.db = knex(config.production)
     }
 
     get connection(){
