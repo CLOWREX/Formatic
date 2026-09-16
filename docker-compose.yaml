@@ -52,7 +52,7 @@ services:
     depends_on:
       - db-formatic
     volumes:
-      - ./uploads:/app/uploads
+      - ./services/form-api/uploads:/app/uploads
     restart: always
     networks:
       - app-network
