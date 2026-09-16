@@ -1,4 +1,5 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, UploadedFile, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common'
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, Res, UploadedFile, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common'
+import * as express from 'express'
 import { SoalService } from './soal.service'
 import { ValidateFormExist } from '../Pipe/validate.form.exist'
 import { JwtAuthGuard } from '../guard/jwt.auth.guard'
@@ -11,6 +12,22 @@ import { ValidateSoalExist } from 'src/Pipe/validate.soal.exist'
 @Controller('form/soal')
 export class SoalController {
   constructor(private soalService: SoalService) { }
+
+  @Get('export')
+  @UseGuards(JwtAuthGuard)
+  async exportDocx(
+    @Query('form_slug', ValidateFormExist) form_slug: any,
+    @Res() response: express.Response,
+  ) {
+    const document = await this.soalService.exportDocx(form_slug)
+    const fileName = `${String(form_slug.title || form_slug.name || 'soal').replace(/[^a-z0-9-_]+/gi, '_')}.docx`
+
+    response.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'Content-Disposition': `attachment; filename="${fileName}"`,
+    })
+    response.send(document)
+  }
 
   // Upload gambar untuk pertanyaan (dipakai oleh Quill editor)
   @Post('image')

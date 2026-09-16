@@ -12,7 +12,11 @@ const { rateLimit } = require("express-rate-limit")
 const limit = pLimit(10)
 
 app.use(express.json())
-app.use(cors())
+app.use(cors({
+    origin: "https://formatic.commandspes.tech",
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    credentials: true
+}))
 
 function jwtToken(payload) {
     return jwt.sign(payload, process.env.SECRET, { expiresIn: '365d' })
