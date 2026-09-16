@@ -984,7 +984,8 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
 
       {/* Floating Quick Action Dock */}
       <div className="fixed right-4 md:right-8 bottom-8 z-40 flex flex-col gap-2.5 items-end">
-        <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-[#d4e5fa] shadow-[0_10px_35px_rgba(26,79,160,0.18)] p-1.5 flex flex-col gap-1.5">
+        <div className="backdrop-blur-md rounded-2xl border shadow-[0_10px_35px_rgba(26,79,160,0.18)] p-1.5 flex flex-col gap-1.5"
+          style={{ backgroundColor: "var(--fm-card)", borderColor: "var(--fm-card-border)" }}>
           <button
             type="button"
             onClick={() => onAddQuestion()}
@@ -1000,7 +1001,8 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
           <button
             type="button"
             onClick={onAddNewPage}
-            className="group relative w-11 h-11 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 flex items-center justify-center transition-all cursor-pointer"
+            className="group relative w-11 h-11 rounded-xl border flex items-center justify-center transition-all cursor-pointer hover:opacity-80"
+            style={{ backgroundColor: "var(--fm-hover)", color: "#6366f1", borderColor: "#a5b4fc" }}
             title="Tambah Halaman Baru (Page Break)"
           >
             <Layers size={18} />
@@ -1012,7 +1014,8 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
           <button
             type="button"
             onClick={onAddIdentityPage}
-            className="group relative w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 flex items-center justify-center transition-all cursor-pointer"
+            className="group relative w-11 h-11 rounded-xl border flex items-center justify-center transition-all cursor-pointer hover:opacity-80"
+            style={{ backgroundColor: "var(--fm-hover)", color: "#059669", borderColor: "#6ee7b7" }}
             title="Tambah Halaman Identitas"
           >
             <IdCard size={18} />
