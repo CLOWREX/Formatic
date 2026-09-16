@@ -71,14 +71,13 @@ function CreateModal({ onClose, onCreated }) {
 
   async function submit() {
     if (!title.trim())    { setError("Judul wajib diisi."); return; }
-    if (!banner)          { setError("Banner wajib diunggah."); return; }
     if (!subKategoriId)   { setError("Pilih kategori terlebih dahulu."); return; }
     setLoading(true); setError("");
     try {
       const fd = new FormData();
       fd.append("title", title.trim());
       fd.append("sub_kategori", subKategoriId);
-      fd.append("banner", banner);
+      if (banner) fd.append("banner", banner);
       fd.append("token_respon", tokenRespon.trim());
       const res  = await fetch(`${FORM_API_URL}/form`, {
         method: "POST",
@@ -148,7 +147,7 @@ function CreateModal({ onClose, onCreated }) {
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-[#4d6a82] uppercase tracking-wider mb-1.5">Banner Form</label>
+            <label className="block text-[11px] font-bold text-[#4d6a82] uppercase tracking-wider mb-1.5">Banner Form <span className="normal-case font-normal text-gray-400">(opsional)</span></label>
             <label className="relative w-full border-2 border-dashed border-[#c5dce8] rounded-lg flex flex-col items-center justify-center gap-1 cursor-pointer bg-[#f4fafd] hover:border-[#3d91b2] hover:bg-[#edf6fb] transition-all overflow-hidden" style={{ minHeight: preview ? "auto" : "72px" }}>
               {preview
                 ? <img src={preview} className="w-full h-auto object-contain rounded-lg" alt="preview" style={{ maxHeight: "160px" }} />

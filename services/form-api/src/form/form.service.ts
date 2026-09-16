@@ -151,11 +151,11 @@ export class FormService {
   async create(
     user: { id: number, username: string },
     body: { title: string, sub_kategori: number, token_respon: string, theme_color: string },
-    banner: Express.Multer.File
+    banner?: Express.Multer.File
   ) {
     const slug = slugify(body.title, { lower: true, strict: true })
     const finalSlug = `${slug}-${Date.now()}`
-    const bannerPath = `/uploads/banner/${banner.filename}`
+    const bannerPath = banner ? `/uploads/banner/${banner.filename}` : null
     const tokenCollab = crypto.randomBytes(8).toString('hex')
 
     const isExist = await this.kategoriService.getSubKategoriById(body.sub_kategori)

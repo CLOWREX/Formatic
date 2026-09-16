@@ -61,7 +61,7 @@ export class FormController {
           new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
           new CustomFileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ })
         ],
-        fileIsRequired: true
+        fileIsRequired: false
       }),
     )
     banner: Express.Multer.File,

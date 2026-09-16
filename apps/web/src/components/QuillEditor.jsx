@@ -3,6 +3,7 @@ import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import { FORM_API_URL } from '../utils/api';
 
 // Toolbar tanpa tombol formula bawaan Quill (kita bikin sendiri)
 const TOOLBAR_OPTIONS = [
@@ -370,6 +371,41 @@ export default function QuillEditor({ value, onChange, placeholder = 'Tulis pert
     });
 
     quillRef.current = quill;
+
+    // Override image handler — upload ke server, bukan base64
+    const toolbar = quill.getModule('toolbar');
+    toolbar.addHandler('image', () => {
+      const input = document.createElement('input');
+      input.setAttribute('type', 'file');
+      input.setAttribute('accept', 'image/*');
+      input.click();
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        // Max 5MB
+        if (file.size > 5 * 1024 * 1024) {
+          alert('Ukuran gambar maksimal 5MB');
+          return;
+        }
+        try {
+          const fd = new FormData();
+          fd.append('image', file);
+          const res = await fetch(`${FORM_API_URL}/form/soal/image`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+            body: fd,
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data?.message || 'Gagal upload gambar');
+          const url = `${FORM_API_URL}${data.url}`;
+          const range = quill.getSelection(true);
+          quill.insertEmbed(range.index, 'image', url, 'user');
+          quill.setSelection(range.index + 1, 0);
+        } catch (e) {
+          alert(e.message || 'Gagal upload gambar. Coba lagi.');
+        }
+      };
+    });
 
     if (value) {
       quill.clipboard.dangerouslyPasteHTML(value);

@@ -2217,7 +2217,7 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
               <p className="font-bold text-gray-700 text-[15px]">Token Responden</p>
               <p className="text-[13px] text-gray-400 mt-0.5">
                 {tokenActive
-                  ? <span>Token aktif — responden wajib memasukkan kode.</span>
+                  ? <span>Token aktif — responden wajib memasukkan kode. <span className="font-mono font-bold text-[#1a4fa0]">{form?.token_respon && `(${form.token_respon})`}</span></span>
                   : "Tidak ada token — form dapat diisi siapa saja."
                 }
               </p>
