@@ -958,14 +958,16 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
         <button
           onClick={() => onAddQuestion()}
-          className="w-full py-4 rounded-2xl border-2 border-dashed border-[#c7d8e8] text-[#1a4fa0] hover:border-[#1a4fa0] hover:bg-white text-[15px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-4 rounded-2xl border-2 border-dashed text-[15px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer hover:border-[#1a4fa0] hover:text-[#1a4fa0]"
+          style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}
         >
           <ListPlus size={20} /> Tambah Pertanyaan
         </button>
 
         <button
           onClick={onAddNewPage}
-          className="w-full py-4 rounded-2xl border-2 border-dashed border-indigo-200 text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50 text-[15px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-4 rounded-2xl border-2 border-dashed text-[15px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer hover:border-indigo-400 hover:text-indigo-500"
+          style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}
         >
           <Layers size={19} /> Tambah Halaman Baru (Page Break)
         </button>
@@ -974,7 +976,8 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
       {/* Tombol template identitas */}
       <button
         onClick={onAddIdentityPage}
-        className="w-full py-4 rounded-2xl border-2 border-dashed border-emerald-200 text-emerald-600 hover:border-emerald-400 hover:bg-emerald-50 text-[14px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
+        className="w-full py-4 rounded-2xl border-2 border-dashed text-[14px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:text-emerald-500"
+        style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}
       >
         <IdCard size={18} /> Tambah Halaman Identitas (Nama, Kelas, dst.)
       </button>
@@ -2526,7 +2529,8 @@ function ImportDocxButton({ slug, onImported, onImportedSilent, onImportGuard, h
         <a
           href="/soal.docx"
           download="Template_Soal_FormMaker.docx"
-          className="py-3 px-4 rounded-2xl border border-[#c7d8e8] bg-[#f8fbfe] hover:bg-[#eef5fb] text-[#1a4fa0] text-[13.5px] font-semibold flex items-center justify-center gap-2 transition-all shadow-xs"
+          className="py-3 px-4 rounded-2xl border-2 border-dashed text-[13.5px] font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer hover:border-[#1a4fa0] hover:text-[#1a4fa0]"
+          style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}
         >
           <Download size={17} /> Unduh Template Soal (.docx)
         </a>
@@ -2534,10 +2538,11 @@ function ImportDocxButton({ slug, onImported, onImportedSilent, onImportGuard, h
         {/* Tombol Upload File Docx */}
         <div className="relative">
           <label className={`w-full py-3 pl-4 pr-12 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 text-[13.5px] font-semibold transition-all cursor-pointer shadow-xs ${
-            importing
-              ? "border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50"
-              : "border-[#c7d8e8] bg-white text-gray-600 hover:border-[#1a4fa0] hover:text-[#1a4fa0]"
-          }`}>
+            importing || savingFirst
+              ? "cursor-not-allowed opacity-50"
+              : "hover:border-[#1a4fa0] hover:text-[#1a4fa0]"
+          }`}
+          style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}>
             {savingFirst ? (
               <>
                 <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
