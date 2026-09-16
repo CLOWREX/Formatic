@@ -958,16 +958,20 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
         <button
           onClick={() => onAddQuestion()}
-          className="w-full py-4 rounded-2xl border-2 border-dashed text-[15px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer hover:border-[#1a4fa0] hover:text-[#1a4fa0]"
+          className="w-full py-4 rounded-2xl border-2 border-dashed text-[15px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
           style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#1a4fa0"; e.currentTarget.style.color = "#1a4fa0"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--fm-card-border)"; e.currentTarget.style.color = "var(--fm-text-2)"; }}
         >
           <ListPlus size={20} /> Tambah Pertanyaan
         </button>
 
         <button
           onClick={onAddNewPage}
-          className="w-full py-4 rounded-2xl border-2 border-dashed text-[15px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer hover:border-indigo-400 hover:text-indigo-500"
+          className="w-full py-4 rounded-2xl border-2 border-dashed text-[15px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
           style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.color = "#6366f1"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--fm-card-border)"; e.currentTarget.style.color = "var(--fm-text-2)"; }}
         >
           <Layers size={19} /> Tambah Halaman Baru (Page Break)
         </button>
@@ -976,8 +980,10 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
       {/* Tombol template identitas */}
       <button
         onClick={onAddIdentityPage}
-        className="w-full py-4 rounded-2xl border-2 border-dashed text-[14px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer hover:border-emerald-400 hover:text-emerald-500"
+        className="w-full py-4 rounded-2xl border-2 border-dashed text-[14px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
         style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = "#10b981"; e.currentTarget.style.color = "#10b981"; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--fm-card-border)"; e.currentTarget.style.color = "var(--fm-text-2)"; }}
       >
         <IdCard size={18} /> Tambah Halaman Identitas (Nama, Kelas, dst.)
       </button>
@@ -2529,20 +2535,22 @@ function ImportDocxButton({ slug, onImported, onImportedSilent, onImportGuard, h
         <a
           href="/soal.docx"
           download="Template_Soal_FormMaker.docx"
-          className="py-3 px-4 rounded-2xl border-2 border-dashed text-[13.5px] font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer hover:border-[#1a4fa0] hover:text-[#1a4fa0]"
+          className="py-3 px-4 rounded-2xl border-2 border-dashed text-[13.5px] font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
           style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#1a4fa0"; e.currentTarget.style.color = "#1a4fa0"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--fm-card-border)"; e.currentTarget.style.color = "var(--fm-text-2)"; }}
         >
           <Download size={17} /> Unduh Template Soal (.docx)
         </a>
 
         {/* Tombol Upload File Docx */}
         <div className="relative">
-          <label className={`w-full py-3 pl-4 pr-12 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 text-[13.5px] font-semibold transition-all cursor-pointer shadow-xs ${
-            importing || savingFirst
-              ? "cursor-not-allowed opacity-50"
-              : "hover:border-[#1a4fa0] hover:text-[#1a4fa0]"
-          }`}
-          style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}>
+          <label
+            className="w-full py-3 pl-4 pr-12 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 text-[13.5px] font-semibold transition-all cursor-pointer shadow-xs"
+            style={{ borderColor: "var(--fm-card-border)", color: importing || savingFirst ? "var(--fm-text-3)" : "var(--fm-text-2)", backgroundColor: "transparent", opacity: importing || savingFirst ? 0.6 : 1 }}
+            onMouseEnter={e => { if (!importing && !savingFirst) { e.currentTarget.style.borderColor = "#1a4fa0"; e.currentTarget.style.color = "#1a4fa0"; }}}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--fm-card-border)"; e.currentTarget.style.color = "var(--fm-text-2)"; }}
+          >
             {savingFirst ? (
               <>
                 <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
