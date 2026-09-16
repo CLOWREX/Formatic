@@ -31,6 +31,8 @@ services:
       - SECRET=${SECRET}
     depends_on:
       - db-formatic
+    volumes:
+      - ./uploads:/app/uploads
     restart: always
     networks:
       - app-network
