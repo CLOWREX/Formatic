@@ -311,7 +311,16 @@ body {
 [data-theme="dark"] .text-\[\#2991b1\] { color: #7ab3ef !important; }
 [data-theme="dark"] .text-\[\#193c70\] { color: var(--fm-text) !important; }
 
-/* ── Dark mode: FillForm soal card specific ─────────────────── */
+/* ── Dark mode: FillForm zoom buttons ───────────────────────── */
+[data-theme="dark"] .border-\[\#d0e3f5\] {
+  border-color: var(--fm-card-border) !important;
+  background-color: var(--fm-card) !important;
+}
+
+/* ── Dark mode: MyForms search bar ──────────────────────────── */
+[data-theme="dark"] .bg-white\/90 { background-color: var(--fm-card) !important; }
+[data-theme="dark"] .border-\[\#d9e8f1\] { border-color: var(--fm-border) !important; }
+
 [data-theme="dark"] .border-\[\#e2e9f1\] { border-color: var(--fm-card-border) !important; }
 [data-theme="dark"] .hover\:bg-\[\#f7fafd\]:hover { background-color: var(--fm-hover) !important; }
 

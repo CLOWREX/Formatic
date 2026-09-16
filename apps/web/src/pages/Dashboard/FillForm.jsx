@@ -486,8 +486,8 @@ export default function FillForm() {
   const allSoal = soalList;
 
   // ── Manual Zoom Handlers ──
-  function zoomIn()  { setZoomLevel(prev => Math.min(prev + 0.1, 1.5)); }
-  function zoomOut() { setZoomLevel(prev => Math.max(prev - 0.1, 0.7)); }
+  function zoomIn()  { setZoomLevel(prev => Math.min(prev + 0.1, 3.0)); }
+  function zoomOut() { setZoomLevel(prev => Math.max(prev - 0.1, 0.5)); }
   function resetZoom() { setZoomLevel(1); }
 
   // Get banner image with auto-resize (object-fit: contain)

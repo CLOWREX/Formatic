@@ -59,7 +59,8 @@ function ActivityCard({ forms, loading }) {
         })}
         {!loading && forms.length === 0 && <p className="text-[12px] text-[#8ca0ba] my-3">Belum ada aktivitas.</p>}
       </div>
-      <button onClick={() => navigate("/my-forms")} className="w-full h-[38px] mt-4 px-[14px] flex items-center justify-between rounded-[7px] bg-[#f0f6ff] text-[#1764d6] text-[11px] border-none cursor-pointer hover:bg-[#e3efff] transition-colors">
+      <button onClick={() => navigate("/my-forms")} className="w-full h-[38px] mt-4 px-[14px] flex items-center justify-between rounded-[7px] text-[11px] border-none cursor-pointer transition-colors"
+        style={{ backgroundColor: "var(--fm-hover)", color: "#1764d6" }}>
         <span>View all activity</span><ArrowRight size={17} />
       </button>
     </section>
