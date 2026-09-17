@@ -1426,6 +1426,7 @@ function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField
 
 /* ── Responses Tab ──────────────────────────────────────────── */
 function ResponsesTab({ formId, form }) {
+  const navigate = useNavigate();
   const formSlug = form?.slug ?? form?.form_slug;
   const [summary, setSummary]           = useState(null);
   const [loading, setLoading]           = useState(true);
@@ -1624,6 +1625,13 @@ function ResponsesTab({ formId, form }) {
           </span>
         </div>
         <div className="flex gap-3">
+          <button
+            onClick={() => navigate(`/form/${formSlug}/monitoring`)}
+            className="h-[39px] px-5 rounded-lg bg-[#fff7ed] text-[#ea580c] text-[12px] font-semibold border border-[#fed7aa] cursor-pointer hover:bg-[#ffedd5] transition-colors flex items-center gap-1.5"
+          >
+            <span className="w-2 h-2 rounded-full bg-[#ea580c] animate-pulse inline-block" />
+            Monitoring
+          </button>
           <button
             onClick={handleExport}
             disabled={exporting || total === 0}

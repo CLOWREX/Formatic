@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
-import api, { FORM_API_URL, flattenForm } from "../../utils/api";
+import api, { FORM_API_URL, flattenForm, monitoringAPI } from "../../utils/api";
 import { socket } from "../../utils/socket";
 import { ArrowLeft, Send, Check, CheckCircle2, UploadCloud, FileText, Bell, ArrowRight, ZoomIn, ZoomOut, RefreshCw, Flag, LockKeyhole, Music, FileQuestion, AlarmClock } from "lucide-react";
 import { saveToHistory } from "./History";
@@ -59,6 +59,20 @@ export default function FillForm() {
   const [doubtfulIds, setDoubtfulIds] = useState(new Set()); // soal yang ditandai ragu-ragu
   const [theme, setTheme]             = useState(() => getStoredTheme(slug) || DEFAULT_FORM_THEME);
   const soalRefs = useRef({});
+  const progressDebounceRef = useRef(null);
+
+  // Helper: kirim progress ke backend (debounced 400ms, fire-and-forget)
+  const emitProgress = useCallback((nextIdx, pgGroups, totalSoalCount) => {
+    if (!slug) return;
+    if (progressDebounceRef.current) clearTimeout(progressDebounceRef.current);
+    progressDebounceRef.current = setTimeout(() => {
+      const currentPage = nextIdx + 1;
+      const totalPages = pgGroups.length;
+      const soalOnPage = pgGroups[nextIdx]?.soal?.length ?? 0;
+      monitoringAPI.updateProgress(slug, currentPage, soalOnPage, totalPages, totalSoalCount)
+        .catch(() => {}); // fire-and-forget, jangan crash jika gagal
+    }, 400);
+  }, [slug]);
 
   useEffect(() => {
     const saved = getStoredTheme(slug);
@@ -662,13 +676,21 @@ export default function FillForm() {
       }
       setSubmitError("");
       setErrorSoalId(null);
-      setCurrentIdx(i => Math.min(i + 1, totalPages - 1));
+      setCurrentIdx(i => {
+        const next = Math.min(i + 1, totalPages - 1);
+        emitProgress(next, pageGroups, allSoal.length);
+        return next;
+      });
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
     function goPrev() {
       setSubmitError("");
       setErrorSoalId(null);
-      setCurrentIdx(i => Math.max(i - 1, 0));
+      setCurrentIdx(i => {
+        const next = Math.max(i - 1, 0);
+        emitProgress(next, pageGroups, allSoal.length);
+        return next;
+      });
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -884,12 +906,20 @@ export default function FillForm() {
       return;
     }
     setErrorSoalId(null);
-    setCurrentIdx(i => Math.min(i + 1, totalPagesS - 1));
+    setCurrentIdx(i => {
+      const next = Math.min(i + 1, totalPagesS - 1);
+      emitProgress(next, pageGroups, allSoal.length);
+      return next;
+    });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   function goPrevS() {
     setErrorSoalId(null);
-    setCurrentIdx(i => Math.max(i - 1, 0));
+    setCurrentIdx(i => {
+      const next = Math.max(i - 1, 0);
+      emitProgress(next, pageGroups, allSoal.length);
+      return next;
+    });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
