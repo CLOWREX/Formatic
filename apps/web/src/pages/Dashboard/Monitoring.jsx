@@ -106,11 +106,22 @@ export default function Monitoring() {
   useEffect(() => {
     if (!slug) return;
 
-    socket.connect();
-    socket.emit("joinMonitoring", { slug });
+    // Connect jika belum
+    if (!socket.connected) socket.connect();
 
-    socket.on("connect", () => setConnected(true));
+    // Join room monitoring segera, dan lagi setelah connect (jika sedang connecting)
+    const joinRoom = () => {
+      socket.emit("joinMonitoring", { slug });
+      setConnected(true);
+    };
+
+    if (socket.connected) {
+      joinRoom();
+    }
+
+    socket.on("connect", joinRoom);
     socket.on("disconnect", () => setConnected(false));
+    socket.on("connect_error", () => setConnected(false));
 
     const handleProgress = (data) => {
       if (data?.slug !== slug) return;
@@ -150,8 +161,9 @@ export default function Monitoring() {
       socket.emit("leaveMonitoring", { slug });
       socket.off("progressUpdated", handleProgress);
       socket.off("formUpdated", handleFormUpdated);
-      socket.off("connect");
+      socket.off("connect", joinRoom);
       socket.off("disconnect");
+      socket.off("connect_error");
       socket.disconnect();
     };
   }, [slug, fetchData]);
