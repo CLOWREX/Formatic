@@ -2223,14 +2223,124 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
     window.dispatchEvent(new StorageEvent("storage", { key, newValue: val }));
   }
 
+  // Banner state
+  const [bannerPreview, setBannerPreview] = useState(form?.banner ?? form?.form_banner ?? null);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const [bannerMsg, setBannerMsg] = useState("");
+  const bannerInputRef = useRef(null);
+
+  async function uploadBanner(file) {
+    if (!file) return;
+    setBannerUploading(true); setBannerMsg("");
+    try {
+      const fd = new FormData();
+      fd.append("banner", file);
+      const res = await fetch(`${FORM_API_URL}/form/banner?form_slug=${form?.slug ?? slug}`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        body: fd,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setBannerPreview(data?.data?.banner);
+        onSaved?.({ banner: data?.data?.banner, form_banner: data?.data?.banner });
+        setBannerMsg("Banner berhasil diupdate!");
+      } else {
+        setBannerMsg(data?.message || "Gagal upload banner.");
+      }
+    } catch { setBannerMsg("Gagal upload banner."); }
+    finally { setBannerUploading(false); setTimeout(() => setBannerMsg(""), 3000); }
+  }
+
+  async function deleteBanner() {
+    setBannerUploading(true); setBannerMsg("");
+    try {
+      const res = await fetch(`${FORM_API_URL}/form/banner?form_slug=${form?.slug ?? slug}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (res.ok) {
+        setBannerPreview(null);
+        onSaved?.({ banner: null, form_banner: null });
+        setBannerMsg("Banner berhasil dihapus.");
+      } else {
+        setBannerMsg("Gagal hapus banner.");
+      }
+    } catch { setBannerMsg("Gagal hapus banner."); }
+    finally { setBannerUploading(false); setTimeout(() => setBannerMsg(""), 3000); }
+  }
+
   return (
     <div className="max-w-2xl mx-auto py-8 px-4 space-y-4">
 
-      {/* Status Publikasi */}
-      <div className="bg-white rounded-2xl border border-[#e5eef7] shadow-sm p-6 flex items-center justify-between gap-4">
+      {/* Banner Form */}
+      <div className="rounded-2xl border shadow-sm p-6 space-y-4" style={{ backgroundColor: "var(--fm-card)", borderColor: "var(--fm-card-border)" }}>
         <div>
-          <p className="font-bold text-gray-700 text-[15px]">Status Publikasi</p>
-          <p className="text-[13px] text-gray-400 mt-1">
+          <p className="font-bold text-[15px]" style={{ color: "var(--fm-text)" }}>Banner Form</p>
+          <p className="text-[13px] mt-1" style={{ color: "var(--fm-text-2)" }}>Gambar header yang ditampilkan di atas form. Ukuran optimal 1200×400px.</p>
+        </div>
+
+        {/* Preview banner */}
+        {bannerPreview ? (
+          <div className="relative rounded-xl overflow-hidden border" style={{ borderColor: "var(--fm-card-border)" }}>
+            <img
+              src={bannerPreview.startsWith("http") ? bannerPreview : `${FORM_API_URL}${bannerPreview}`}
+              alt="Banner"
+              className="w-full h-[140px] object-cover"
+            />
+            <button
+              onClick={deleteBanner}
+              disabled={bannerUploading}
+              className="absolute top-2 right-2 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow-md disabled:opacity-60"
+              title="Hapus banner"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <div
+            className="w-full h-[120px] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors"
+            style={{ borderColor: "var(--fm-card-border)", backgroundColor: "var(--fm-hover)" }}
+            onClick={() => bannerInputRef.current?.click()}
+          >
+            <ImagePlus size={24} style={{ color: "var(--fm-text-3)" }} />
+            <span className="text-[13px] font-medium" style={{ color: "var(--fm-text-2)" }}>Klik untuk upload banner</span>
+            <span className="text-[11px]" style={{ color: "var(--fm-text-3)" }}>JPG, PNG, WEBP — maks 5MB</span>
+          </div>
+        )}
+
+        <input
+          ref={bannerInputRef}
+          type="file"
+          accept=".jpg,.jpeg,.png,.webp"
+          className="hidden"
+          onChange={e => { if (e.target.files?.[0]) uploadBanner(e.target.files[0]); e.target.value = ""; }}
+        />
+
+        {bannerPreview && (
+          <button
+            onClick={() => bannerInputRef.current?.click()}
+            disabled={bannerUploading}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold border transition-all disabled:opacity-60"
+            style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "var(--fm-hover)" }}
+          >
+            <ImagePlus size={15} />
+            {bannerUploading ? "Mengupload..." : "Ganti Banner"}
+          </button>
+        )}
+
+        {bannerMsg && (
+          <p className={`text-[12px] font-medium ${bannerMsg.includes("berhasil") ? "text-green-600" : "text-red-500"}`}>
+            {bannerMsg}
+          </p>
+        )}
+      </div>
+
+      {/* Status Publikasi */}
+      <div className="rounded-2xl border shadow-sm p-6 flex items-center justify-between gap-4" style={{ backgroundColor: "var(--fm-card)", borderColor: "var(--fm-card-border)" }}>
+        <div>
+          <p className="font-bold text-[15px]" style={{ color: "var(--fm-text)" }}>Status Publikasi</p>
+          <p className="text-[13px] mt-1" style={{ color: "var(--fm-text-2)" }}>
             {isPublic ? "Form dapat diisi oleh siapa saja dengan link." : "Form bersifat privat."}
           </p>
         </div>

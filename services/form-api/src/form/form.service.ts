@@ -281,6 +281,37 @@ export class FormService {
     }
   }
 
+  // Update Banner
+  async updateBanner(req: { id: number }, form: any, banner: Express.Multer.File) {
+    const isCreator = await this.isCreator.isCreator(req.id, form.id)
+    if (isCreator !== 'Creator') throw new UnauthorizedException("Anda Tidak Berhak Update Form Ini")
+
+    const bannerPath = `/uploads/banner/${banner.filename}`
+    await this.knexService.connection("forms")
+      .update({ banner: bannerPath })
+      .where("id", form.id)
+
+    return {
+      message: "Berhasil Update Banner",
+      data: { banner: bannerPath }
+    }
+  }
+
+  // Delete Banner
+  async deleteBanner(req: { id: number }, form: any) {
+    const isCreator = await this.isCreator.isCreator(req.id, form.id)
+    if (isCreator !== 'Creator') throw new UnauthorizedException("Anda Tidak Berhak Update Form Ini")
+
+    await this.knexService.connection("forms")
+      .update({ banner: null })
+      .where("id", form.id)
+
+    return {
+      message: "Berhasil Hapus Banner",
+      data: { banner: null }
+    }
+  }
+
   // Delete Form
   async deleteForm(req: { id: number }, form_id) {
     const isCreator = await this.isCreator.isCreator(req.id, form_id.id)
