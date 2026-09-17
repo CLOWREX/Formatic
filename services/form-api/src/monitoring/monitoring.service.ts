@@ -52,7 +52,10 @@ export class MonitoringService {
             .where({ user_id: req.id, form_id: form.id })
             .first()
 
-        if (!existing) throw new NotFoundException("Data pengerjaan tidak ditemukan")
+        if (!existing) {
+            // Tidak ada record — skip, jangan error (creator atau belum check-token)
+            return { message: "Tidak ada record pengerjaan" }
+        }
 
         // Skip update jika sudah selesai
         if (existing.status === "completed" || existing.status === "submitted") {
