@@ -10,6 +10,7 @@ import { useTheme } from "../../context/ThemeContext";
 function formatDuration(startAt) {
   if (!startAt) return "—";
   const diff = Math.floor((Date.now() - new Date(startAt).getTime()) / 1000);
+  if (diff < 0 || diff > 86400) return "—"; // skip kalau tidak masuk akal
   if (diff < 60) return `${diff}d`;
   const m = Math.floor(diff / 60);
   const s = diff % 60;
@@ -27,13 +28,14 @@ function StatusBadge({ status }) {
   const map = {
     progress:  { label: "Sedang mengerjakan", cls: "bg-yellow-100 text-yellow-700 border-yellow-200" },
     completed: { label: "Selesai",             cls: "bg-green-100  text-green-700  border-green-200"  },
+    submitted: { label: "Selesai",             cls: "bg-green-100  text-green-700  border-green-200"  },
     reset:     { label: "Direset",             cls: "bg-gray-100   text-gray-500   border-gray-200"   },
   };
   const { label, cls } = map[status] ?? { label: status, cls: "bg-gray-100 text-gray-500 border-gray-200" };
   return (
     <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${cls}`}>
       {status === "progress" && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse inline-block" />}
-      {status === "completed" && <CheckCircle2 size={10} />}
+      {(status === "completed" || status === "submitted") && <CheckCircle2 size={10} />}
       {label}
     </span>
   );
@@ -388,14 +390,14 @@ export default function Monitoring() {
 
                         {/* Mulai */}
                         <td className="px-4 py-3.5 tabular-nums" style={{ color: "var(--fm-text-2)" }}>
-                          {formatTime(p.start_at)}
+                          {formatTime(p.submitted_at)}
                         </td>
 
                         {/* Durasi */}
                         <td className="px-4 py-3.5 tabular-nums" style={{ color: "var(--fm-text-2)" }}>
-                          {p.status === "completed"
-                            ? formatTime(p.submitted_at)
-                            : <span className="text-yellow-600 font-medium">{formatDuration(p.start_at)}</span>
+                          {p.status === "completed" || p.status === "submitted"
+                            ? <span className="text-green-600 font-medium">Selesai</span>
+                            : <span className="text-yellow-600 font-medium">{formatDuration(p.submitted_at)}</span>
                           }
                         </td>
 
