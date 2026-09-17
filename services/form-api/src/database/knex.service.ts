@@ -8,12 +8,20 @@ export class KnexService {
     private userDb
 
     constructor(){
-        this.db = knex(config.production)
+        const baseConn = {
+            ...config.production.connection,
+            database: process.env.DB_NAME_FORM || 'postgres',
+            ssl: { rejectUnauthorized: false },
+        }
+        this.db = knex({
+            ...config.production,
+            connection: baseConn,
+        })
         this.userDb = knex({
             ...config.production,
             connection: {
-                ...config.production.connection,
-                database: process.env.DB_NAME_USER
+                ...baseConn,
+                database: process.env.DB_NAME_USER || process.env.DB_NAME_FORM || 'postgres',
             }
         })
     }

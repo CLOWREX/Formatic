@@ -1619,15 +1619,17 @@ function ResponsesTab({ formId, form }) {
       {/* FORM HEADING */}
       <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
         <div className="flex items-center gap-3 flex-wrap">
-          <h2 className="m-0 text-[17px] font-bold text-[#142d63]">{title}</h2>
-          <span className={`px-3 py-1 rounded-full text-[11px] font-semibold ${isPublic ? "bg-[#e3f7ef] text-[#16a66b]" : "bg-[#f1f2f5] text-[#7284a3]"}`}>
+          <h2 className="m-0 text-[17px] font-bold" style={{ color: "var(--fm-text)" }}>{title}</h2>
+          <span className="px-3 py-1 rounded-full text-[11px] font-semibold"
+            style={{ backgroundColor: isPublic ? "rgba(22,166,107,0.12)" : "var(--fm-hover)", color: isPublic ? "#16a66b" : "var(--fm-text-2)" }}>
             {isPublic ? "Aktif" : "Draft"}
           </span>
         </div>
         <div className="flex gap-3">
           <button
             onClick={() => navigate(`/form/${formSlug}/monitoring`)}
-            className="h-[39px] px-5 rounded-lg bg-[#fff7ed] text-[#ea580c] text-[12px] font-semibold border border-[#fed7aa] cursor-pointer hover:bg-[#ffedd5] transition-colors flex items-center gap-1.5"
+            className="h-[39px] px-5 rounded-lg text-[12px] font-semibold border cursor-pointer transition-colors flex items-center gap-1.5"
+            style={{ backgroundColor: "rgba(234,88,12,0.1)", color: "#ea580c", borderColor: "rgba(234,88,12,0.3)" }}
           >
             <span className="w-2 h-2 rounded-full bg-[#ea580c] animate-pulse inline-block" />
             Monitoring
@@ -1635,7 +1637,8 @@ function ResponsesTab({ formId, form }) {
           <button
             onClick={handleExport}
             disabled={exporting || total === 0}
-            className="h-[39px] px-5 rounded-lg bg-[#eef5ff] text-[#075ee0] text-[12px] font-semibold border-none cursor-pointer hover:bg-[#daeaff] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+            className="h-[39px] px-5 rounded-lg text-[12px] font-semibold border-none cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+            style={{ backgroundColor: "rgba(7,94,224,0.1)", color: "#075ee0" }}
           >
             {exporting ? "Mengekspor..." : "↓ Ekspor Excel"}
           </button>
@@ -1649,15 +1652,14 @@ function ResponsesTab({ formId, form }) {
       </div>
 
       {/* RESPONSE CONTAINER */}
-      <div className="bg-white/90 rounded-[13px] border border-[#e5ebf4] shadow-[0_4px_20px_rgba(30,70,120,0.04)] overflow-hidden">
+      <div className="rounded-[13px] border overflow-hidden" style={{ backgroundColor: "var(--fm-card)", borderColor: "var(--fm-card-border)" }}>
 
         {/* SUB TABS */}
-        <div className="h-[60px] flex items-center px-[22px] gap-9 border-b border-[#edf1f7] overflow-x-auto">
+        <div className="h-[60px] flex items-center px-[22px] gap-9 border-b overflow-x-auto" style={{ borderColor: "var(--fm-card-border)" }}>
           {["Ringkasan", "Jawaban", "Responden"].map(t => (
             <button key={t} onClick={() => handleSubTab(t)}
-              className={`relative h-[60px] flex items-center text-[13px] font-semibold border-none bg-transparent cursor-pointer transition-colors whitespace-nowrap ${
-                activeSubTab === t ? "text-[#075ee0]" : "text-[#63759b] hover:text-[#075ee0]"
-              }`}>
+              className="relative h-[60px] flex items-center text-[13px] font-semibold border-none bg-transparent cursor-pointer transition-colors whitespace-nowrap"
+              style={{ color: activeSubTab === t ? "#075ee0" : "var(--fm-text-2)" }}>
               {t}
               {activeSubTab === t && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#075ee0] rounded-t" />}
             </button>
@@ -1668,15 +1670,15 @@ function ResponsesTab({ formId, form }) {
         {loading && (
           <div className="flex flex-col items-center gap-3 py-16">
             <div className="w-8 h-8 border-[3px] border-[#dce8f7] border-t-[#075ee0] rounded-full animate-spin" />
-            <span className="text-[12px] text-[#7384a4]">Memuat respons...</span>
+            <span className="text-[12px]" style={{ color: "var(--fm-text-2)" }}>Memuat respons...</span>
           </div>
         )}
 
         {/* EMPTY */}
         {!loading && total === 0 && (
-          <div className="py-16 text-center text-[#7384a4]">
-            <Inbox size={36} className="mx-auto mb-2 text-[#b6c4dc]" />
-            <h4 className="m-0 mb-1 text-[15px] font-bold text-[#142d63]">Belum ada respons</h4>
+          <div className="py-16 text-center" style={{ color: "var(--fm-text-2)" }}>
+            <Inbox size={36} className="mx-auto mb-2" style={{ color: "var(--fm-text-3)" }} />
+            <h4 className="m-0 mb-1 text-[15px] font-bold" style={{ color: "var(--fm-text)" }}>Belum ada respons</h4>
             <p className="m-0 text-[12px]">Bagikan link form untuk mulai mengumpulkan respons.</p>
           </div>
         )}
@@ -1690,17 +1692,19 @@ function ResponsesTab({ formId, form }) {
             {/* STATISTICS */}
             <div className="grid grid-cols-4 gap-[15px] p-[22px] pb-[10px] max-[900px]:grid-cols-2">
               {[
-                { icon: Users,       color: "bg-[#edf4ff] text-[#075ee0]", label: "Total Respon",        value: total,  sub: "responden" },
-                { icon: CheckCircle2, color: "bg-[#eafaf3] text-[#18ae70]", label: "Tingkat Penyelesaian", value: "100%", sub: "selesai" },
-                { icon: Clock,       color: "bg-[#fff5e8] text-[#ee941c]", label: "Rata-rata Waktu",      value: "—",    sub: "menit" },
-                { icon: PieChart,    color: "bg-[#f5edff] text-[#8e4de7]", label: "Selesai Hari Ini",    value: 0,      sub: "responden" },
+                { icon: Users,        iconCls: "text-[#075ee0]", iconBg: "rgba(7,94,224,0.10)",   label: "Total Respon",        value: total,  sub: "responden" },
+                { icon: CheckCircle2, iconCls: "text-[#18ae70]", iconBg: "rgba(24,174,112,0.10)", label: "Tingkat Penyelesaian", value: "100%", sub: "selesai" },
+                { icon: Clock,        iconCls: "text-[#ee941c]", iconBg: "rgba(238,148,28,0.10)", label: "Rata-rata Waktu",      value: "—",    sub: "menit" },
+                { icon: PieChart,     iconCls: "text-[#8e4de7]", iconBg: "rgba(142,77,231,0.10)", label: "Selesai Hari Ini",    value: 0,      sub: "responden" },
               ].map((s, i) => (
-                <div key={i} className="min-h-[110px] border border-[#e7edf6] rounded-xl p-[17px] flex items-center gap-[15px] bg-white">
-                  <div className={`w-[43px] h-[43px] shrink-0 flex items-center justify-center rounded-[9px] ${s.color}`}><s.icon size={20} /></div>
+                <div key={i} className="min-h-[110px] border rounded-xl p-[17px] flex items-center gap-[15px]"
+                  style={{ borderColor: "var(--fm-card-border)", backgroundColor: "var(--fm-hover)" }}>
+                  <div className={`w-[43px] h-[43px] shrink-0 flex items-center justify-center rounded-[9px] ${s.iconCls}`}
+                    style={{ backgroundColor: s.iconBg }}><s.icon size={20} /></div>
                   <div>
-                    <p className="m-0 mb-1 text-[10px] text-[#64779d]">{s.label}</p>
-                    <h3 className="m-0 text-[23px] font-bold text-[#142d63]">{s.value}</h3>
-                    <span className="text-[10px] text-[#8190ad]">{s.sub}</span>
+                    <p className="m-0 mb-1 text-[10px]" style={{ color: "var(--fm-text-2)" }}>{s.label}</p>
+                    <h3 className="m-0 text-[23px] font-bold" style={{ color: "var(--fm-text)" }}>{s.value}</h3>
+                    <span className="text-[10px]" style={{ color: "var(--fm-text-3)" }}>{s.sub}</span>
                   </div>
                 </div>
               ))}
@@ -1713,16 +1717,18 @@ function ResponsesTab({ formId, form }) {
               const maxCount = Math.max(...opts.map(o => o.total_answer ?? 0), 1);
 
               return (
-                <div key={q.id ?? qi} className="mx-[22px] mb-4 border border-[#e7edf6] rounded-xl bg-white overflow-hidden">
+                <div key={q.id ?? qi} className="mx-[22px] mb-4 border rounded-xl overflow-hidden"
+                  style={{ borderColor: "var(--fm-card-border)", backgroundColor: "var(--fm-card)" }}>
                   {/* Header */}
-                  <div className="flex justify-between items-start gap-4 px-5 pt-5 pb-3 border-b border-[#f0f4fa]">
+                  <div className="flex justify-between items-start gap-4 px-5 pt-5 pb-3 border-b" style={{ borderColor: "var(--fm-card-border)" }}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                        <span className="text-[13px] font-bold text-[#142d63]">{qi + 1}.</span>
+                        <span className="text-[13px] font-bold" style={{ color: "var(--fm-text)" }}>{qi + 1}.</span>
                         <RichTextDisplay content={q.question} />
-                        <span className="px-2 py-0.5 rounded-full bg-[#edf4ff] text-[#075ee0] text-[9px] font-bold capitalize">{q.type}</span>
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold capitalize"
+                          style={{ backgroundColor: "rgba(7,94,224,0.1)", color: "#075ee0" }}>{q.type}</span>
                       </div>
-                      <p className="text-[11px] text-[#7384a4] mt-0.5">{answered} respon</p>
+                      <p className="text-[11px] mt-0.5" style={{ color: "var(--fm-text-2)" }}>{answered} respon</p>
                     </div>
                     <ViewAllBtn q={q} total={total} formSlug={formSlug} />
                   </div>
@@ -1740,12 +1746,12 @@ function ResponsesTab({ formId, form }) {
                               {opt.value ?? opt.option_value ?? `Opsi ${oi+1}`}
                             </span>
                             <div className="flex-1 flex items-center gap-2">
-                              <div className="flex-1 h-2.5 bg-[#edf1f7] rounded-full overflow-hidden">
+                              <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--fm-hover)" }}>
                                 <div className="h-full rounded-full transition-all duration-500"
                                   style={{ width: `${barPct}%`, background: CHART_COLORS[oi % CHART_COLORS.length] }} />
                               </div>
-                              <span className="text-[11px] font-bold text-[#142d63] shrink-0 w-[52px] text-right">
-                                {count} <span className="text-[#9aabbd] font-normal">({pctVal}%)</span>
+                              <span className="text-[11px] font-bold shrink-0 w-[52px] text-right" style={{ color: "var(--fm-text)" }}>
+                                {count} <span className="font-normal" style={{ color: "var(--fm-text-3)" }}>({pctVal}%)</span>
                               </span>
                             </div>
                           </div>
@@ -1755,7 +1761,7 @@ function ResponsesTab({ formId, form }) {
                   )}
                   {q.type === "text" && (
                     <div className="px-5 py-4">
-                      <p className="text-[12px] text-[#8ca0ba]">
+                      <p className="text-[12px]" style={{ color: "var(--fm-text-2)" }}>
                         {answered > 0 ? `${answered} jawaban teks masuk — klik "View All" untuk lihat.` : "Belum ada jawaban teks."}
                       </p>
                     </div>
@@ -1786,12 +1792,12 @@ function ResponsesTab({ formId, form }) {
                     });
                   });
                   const respRows = Array.from(respMap.entries());
-                  if (respRows.length === 0) return <p className="text-center text-[13px] text-[#7384a4] py-8">Belum ada jawaban.</p>;
+                  if (respRows.length === 0) return <p className="text-center text-[13px] py-8" style={{ color: "var(--fm-text-2)" }}>Belum ada jawaban.</p>;
                   return (
                     <div className="overflow-x-auto">
                       <table className="w-full text-[12px] border-collapse">
                         <thead>
-                          <tr className="bg-[#1F4E78] text-white">
+                          <tr style={{ backgroundColor: "#1F4E78", color: "white" }}>
                             <th className="px-3 py-2 text-left font-semibold border border-[#2a5f8f] w-10">No</th>
                             {soalAll.map((s, i) => (
                               <th key={s.id ?? i} className="px-3 py-2 text-left font-semibold border border-[#2a5f8f] min-w-[120px] max-w-[200px]">
@@ -1802,8 +1808,8 @@ function ResponsesTab({ formId, form }) {
                         </thead>
                         <tbody>
                           {respRows.map(([sid, data], ri) => (
-                            <tr key={sid} className={ri % 2 === 0 ? "bg-white" : "bg-[#f5f9ff]"}>
-                              <td className="px-3 py-2 border border-[#e7edf6] text-center font-semibold text-[#142d63]">{ri + 1}</td>
+                            <tr key={sid} style={{ backgroundColor: ri % 2 === 0 ? "var(--fm-card)" : "var(--fm-hover)" }}>
+                              <td className="px-3 py-2 border border-[#e7edf6] text-center font-semibold" style={{ color: "var(--fm-text)" }}>{ri + 1}</td>
                               {soalAll.map((s, i) => {
                                 const raw = data.answers[s.id];
                                 let display = "-";
@@ -1814,7 +1820,7 @@ function ResponsesTab({ formId, form }) {
                                   } else display = String(raw);
                                 }
                                 return (
-                                  <td key={s.id ?? i} className="px-3 py-2 border border-[#e7edf6] text-[#364a6e] max-w-[200px]">
+                                  <td key={s.id ?? i} className="px-3 py-2 border border-[#e7edf6] max-w-[200px]" style={{ color: "var(--fm-text)" }}>
                                     <div className="truncate">{display}</div>
                                   </td>
                                 );
@@ -1847,17 +1853,17 @@ function ResponsesTab({ formId, form }) {
                     });
                   });
                   const rows = Array.from(respMap.values());
-                  if (rows.length === 0) return <p className="text-center text-[13px] text-[#7384a4] py-8">Belum ada responden.</p>;
+                  if (rows.length === 0) return <p className="text-center text-[13px] py-8" style={{ color: "var(--fm-text-2)" }}>Belum ada responden.</p>;
                   return (
                     <div className="space-y-3">
                       {rows.map((row, i) => (
-                        <div key={row.sid} className="border border-[#e7edf6] rounded-xl bg-white p-4">
+                        <div key={row.sid} className="border rounded-xl p-4" style={{ borderColor: "var(--fm-card-border)", backgroundColor: "var(--fm-hover)" }}>
                           <div className="flex items-center gap-3 mb-3">
                             <div className="w-8 h-8 rounded-full bg-[#1a4fa0] text-white text-[13px] font-bold flex items-center justify-center shrink-0">
                               {i + 1}
                             </div>
-                            <span className="text-[13px] font-bold text-[#142d63]">Responden #{i + 1}</span>
-                            <span className="text-[11px] text-[#7384a4] ml-auto">ID: {row.sid}</span>
+                            <span className="text-[13px] font-bold" style={{ color: "var(--fm-text)" }}>Responden #{i + 1}</span>
+                            <span className="text-[11px] ml-auto" style={{ color: "var(--fm-text-2)" }}>ID: {row.sid}</span>
                           </div>
                           <div className="space-y-1.5">
                             {soalAll.map((s, si) => {
@@ -1871,11 +1877,11 @@ function ResponsesTab({ formId, form }) {
                               }
                               return (
                                 <div key={s.id ?? si} className="flex items-start gap-2 text-[12px]">
-                                  <span className="text-[#7384a4] shrink-0 w-5">{si + 1}.</span>
-                                  <span className="text-[#364a6e] font-medium shrink-0 max-w-[40%] truncate">
+                                  <span className="shrink-0 w-5" style={{ color: "var(--fm-text-2)" }}>{si + 1}.</span>
+                                  <span className="font-medium shrink-0 max-w-[40%] truncate" style={{ color: "var(--fm-text-2)" }}>
                                     {(s.question ?? "").replace(/<[^>]*>/g, "").slice(0, 35)}:
                                   </span>
-                                  <span className="text-[#142d63] flex-1">{display}</span>
+                                  <span className="flex-1" style={{ color: "var(--fm-text)" }}>{display}</span>
                                 </div>
                               );
                             })}
@@ -1933,23 +1939,26 @@ function ViewAllBtn({ q, total, formSlug }) {
   return (
     <>
       <button onClick={loadDetail}
-        className="shrink-0 px-3 py-1.5 rounded-lg bg-[#eef5ff] text-[#075ee0] text-[11px] font-semibold border-none cursor-pointer hover:bg-[#daeaff] transition-colors whitespace-nowrap">
+        className="shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold border-none cursor-pointer transition-colors whitespace-nowrap"
+        style={{ backgroundColor: "rgba(7,94,224,0.1)", color: "#075ee0" }}>
         View All →
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden"
+          <div className="rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden"
+            style={{ backgroundColor: "var(--fm-card)", border: "1px solid var(--fm-card-border)" }}
             onClick={e => e.stopPropagation()}>
             {/* Header */}
-            <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
+            <div className="px-5 py-4 border-b flex items-start justify-between gap-3" style={{ borderColor: "var(--fm-card-border)" }}>
               <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-1">Semua Jawaban</p>
+                <p className="text-[12px] font-bold uppercase tracking-wide mb-1" style={{ color: "var(--fm-text-2)" }}>Semua Jawaban</p>
                 <RichTextDisplay content={q.question} />
               </div>
               <button onClick={() => setOpen(false)}
-                className="text-gray-400 hover:text-gray-600 text-xl leading-none border-none bg-transparent cursor-pointer shrink-0">×</button>
+                className="text-xl leading-none border-none bg-transparent cursor-pointer shrink-0"
+                style={{ color: "var(--fm-text-2)" }}>×</button>
             </div>
 
             {/* Content */}
@@ -1961,13 +1970,14 @@ function ViewAllBtn({ q, total, formSlug }) {
               )}
 
               {!loading && answers.length === 0 && (
-                <p className="text-[13px] text-gray-400 text-center py-8">Belum ada jawaban.</p>
+                <p className="text-[13px] text-center py-8" style={{ color: "var(--fm-text-2)" }}>Belum ada jawaban.</p>
               )}
 
               {!loading && answers.length > 0 && (
                 <div className="space-y-2">
                   {answers.map((ans, i) => (
-                    <div key={i} className="px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-[13px] text-[#364a6e]">
+                    <div key={i} className="px-4 py-3 rounded-xl text-[13px]"
+                      style={{ backgroundColor: "var(--fm-hover)", border: "1px solid var(--fm-card-border)", color: "var(--fm-text)" }}>
                       {typeof ans === "string" ? ans : JSON.stringify(ans)}
                     </div>
                   ))}
@@ -1976,7 +1986,7 @@ function ViewAllBtn({ q, total, formSlug }) {
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-3 border-t border-gray-100 text-[12px] text-gray-400 text-right">
+            <div className="px-5 py-3 border-t text-[12px] text-right" style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)" }}>
               {answers.length} jawaban
             </div>
           </div>
