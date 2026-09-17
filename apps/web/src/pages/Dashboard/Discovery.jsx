@@ -140,7 +140,7 @@ export default function Discovery() {
                 style={{ backgroundColor: "var(--fm-card)", borderColor: "var(--fm-border)", color: "var(--fm-text)" }}
               />
             </div>
-            <div className="flex flex-wrap gap-2 items-center">
+            <div className="flex flex-wrap gap-2 items-center min-h-[42px]">
               {/* Primary filter buttons */}
               {["Semua", ...primaryList.map(p => p.name)].map(p => (
                 <button key={p} onClick={() => setPrimaryFilter(p)}
@@ -153,15 +153,15 @@ export default function Discovery() {
                 </button>
               ))}
 
-              {/* Sub kategori — dropdown */}
+              {/* Sub kategori — dropdown dengan animasi */}
               {subList.length > 0 && (
                 <>
                   <span className="self-center text-gray-400 text-[12px]">•</span>
-                  <div className="relative">
+                  <div className="relative" style={{ animation: "fadeSlideIn 0.2s ease" }}>
                     <select
                       value={subFilter}
                       onChange={e => setSubFilter(e.target.value)}
-                      className="appearance-none pl-3 pr-8 py-2 rounded-xl border text-[13px] font-semibold outline-none cursor-pointer transition"
+                      className="appearance-none pl-3 pr-8 py-2 rounded-xl border text-[13px] font-semibold outline-none cursor-pointer transition-all duration-200"
                       style={{
                         backgroundColor: subFilter !== "Semua" ? "#6366f1" : "var(--fm-card)",
                         color: subFilter !== "Semua" ? "#fff" : "var(--fm-text-2)",
@@ -174,7 +174,7 @@ export default function Discovery() {
                       ))}
                     </select>
                     {/* Chevron icon */}
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[11px]"
                       style={{ color: subFilter !== "Semua" ? "#fff" : "var(--fm-text-2)" }}>
                       ▾
                     </span>
