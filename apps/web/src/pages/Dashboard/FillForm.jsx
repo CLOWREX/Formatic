@@ -194,7 +194,15 @@ export default function FillForm() {
   useEffect(() => {
     if (form) {
       const needsToken = Boolean(form?.token_respon);
-      if (!needsToken) setTokenVerified(true);
+      if (!needsToken && !tokenVerified) {
+        // Form tidak butuh token — langsung register ke backend supaya monitoring bisa tracking
+        fetch(`${FORM_API_URL}/form/submit/check-token?form_slug=${slug}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+          body: JSON.stringify({ token: null }),
+        }).catch(() => {}); // fire-and-forget, jangan crash
+        setTokenVerified(true);
+      }
     }
   }, [form]);
 
