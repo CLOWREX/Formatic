@@ -5,7 +5,7 @@ import api, { FORM_API_URL, flattenForm } from "../../utils/api";
 import AlertModal from "../../components/AlertModal";
 import * as XLSX from "xlsx";
 import { socket } from "../../utils/socket";
-import { ArrowLeft, Link2, Trash2, Plus, Copy, Share2, Check, ListPlus, FileQuestion, FileText, UploadCloud, GripVertical, ImagePlus, X, QrCode, Download, Palette, Info, BookOpen, ChevronRight, IdCard, Eye, EyeOff, Paperclip, Lightbulb, AlertTriangle, Music, Lock, LockKeyhole, LockOpen, Target, Star, Inbox, Users, CheckCircle2, Clock, PieChart, Dices, PenLine, Save, RefreshCw, Timer, Trophy, Shuffle, Layers, Unlink } from "lucide-react";
+import { ArrowLeft, Link2, Trash2, Plus, Copy, Share2, Check, ListPlus, FileQuestion, FileText, UploadCloud, GripVertical, ImagePlus, X, QrCode, Download, Palette, Info, BookOpen, ChevronRight, IdCard, Eye, EyeOff, Paperclip, Lightbulb, AlertTriangle, Music, Lock, LockKeyhole, LockOpen, Target, Star, Inbox, Users, CheckCircle2, Clock, PieChart, Dices, PenLine, Save, RefreshCw, Timer, Trophy, Shuffle, Layers, Unlink, FileDown } from "lucide-react";
 import QRCode from "qrcode";
 import QuillEditor from "../../components/QuillEditor";
 import OptionQuillEditor from "../../components/OptionQuillEditor";
@@ -786,11 +786,36 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
     const key = `score_type_${form?.slug ?? slug}`;
     const stored = localStorage.getItem(key) ?? "none";
     setScoreType(stored);
-    // Listen storage changes (ketika user ganti di Setelan tab)
     const handler = (e) => { if (e.key === key) setScoreType(e.newValue ?? "none"); };
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
   }, [form?.slug, slug]);
+
+  const [exportingDocx, setExportingDocx] = useState(false);
+  async function onExportDocx() {
+    setExportingDocx(true);
+    try {
+      const res = await fetch(`${FORM_API_URL}/form/soal/export?form_slug=${slug}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.message || "Gagal mengekspor soal.");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Soal_${slug}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      onShowToast?.("Soal berhasil diekspor ke Word!");
+    } catch (e) {
+      onShowToast?.(e.message || "Gagal mengekspor soal.");
+    } finally {
+      setExportingDocx(false);
+    }
+  }
   return (
     <div className="max-w-3xl mx-auto py-8 px-4 md:px-6 xl:px-8 space-y-5 relative" style={{ paddingBottom: 80 }}>
       {/* Form header card */}
@@ -893,8 +918,8 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
                           <p className="text-[12px] text-[#64779d]">
                             Responden akan diarahkan ke halaman ini setelah menekan &quot;Selanjutnya&quot;.
                           </p>
-                        </div>
-                      </div>
+        </div>
+      </div>
 
                       <div className="flex items-center gap-2 flex-wrap">
                         <button
@@ -957,24 +982,27 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
         <button
-          onClick={() => onAddQuestion()}
+          type="button"
+          onClick={onExportDocx}
+          disabled={exportingDocx}
           className="w-full py-4 rounded-2xl border-2 border-dashed text-[15px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
-          style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = "#1a4fa0"; e.currentTarget.style.color = "#1a4fa0"; }}
+          style={{ borderColor: "var(--fm-card-border)", color: exportingDocx ? "var(--fm-text-3)" : "var(--fm-text-2)", backgroundColor: "transparent", opacity: exportingDocx ? 0.6 : 1 }}
+          onMouseEnter={e => { if (!exportingDocx) { e.currentTarget.style.borderColor = "#10b981"; e.currentTarget.style.color = "#10b981"; }}}
           onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--fm-card-border)"; e.currentTarget.style.color = "var(--fm-text-2)"; }}
         >
-          <ListPlus size={20} /> Tambah Pertanyaan
+          {exportingDocx ? (
+            <>
+              <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+              Mengekspor...
+            </>
+          ) : (
+            <>
+              <FileDown size={20} /> Ekspor Soal (.docx)
+            </>
+          )}
         </button>
 
-        <button
-          onClick={onAddNewPage}
-          className="w-full py-4 rounded-2xl border-2 border-dashed text-[15px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
-          style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.color = "#6366f1"; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--fm-card-border)"; e.currentTarget.style.color = "var(--fm-text-2)"; }}
-        >
-          <Layers size={19} /> Tambah Halaman Baru (Page Break)
-        </button>
+        <ImportDocxButton slug={slug} onImported={onImported} onImportedSilent={onImportedSilent} onImportGuard={onImportGuard} hasUnsaved={hasUnsaved} onSaveFirst={onSaveFirst} />
       </div>
 
       {/* Tombol template identitas */}
@@ -987,9 +1015,6 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
       >
         <IdCard size={18} /> Tambah Halaman Identitas (Nama, Kelas, dst.)
       </button>
-
-      {/* Import dari Word */}
-      <ImportDocxButton slug={slug} onImported={onImported} onImportedSilent={onImportedSilent} onImportGuard={onImportGuard} hasUnsaved={hasUnsaved} onSaveFirst={onSaveFirst} />
 
       {/* Floating Quick Action Dock */}
       <div className="fixed right-4 md:right-8 bottom-8 z-40 flex flex-col gap-2.5 items-end">
@@ -2574,50 +2599,31 @@ function Toggle({ value, onChange }) {
   );
 }
 
-/* ── Import Docx Button & Template Download ─────────────────────────────────────── */
+/* ── Import Docx Button ─────────────────────────────────────── */
 function ImportDocxButton({ slug, onImported, onImportedSilent, onImportGuard, hasUnsaved, onSaveFirst }) {
   const [importing, setImporting] = useState(false);
   const [savingFirst, setSavingFirst] = useState(false);
   const [alertState, setAlertState] = useState({ open: false, type: "info", title: "", message: "" });
-  const [toast, setToast] = useState("");
-
-  function showMsg(msg) {
-    setToast(msg);
-    setTimeout(() => { setToast(""); }, 4000);
-  }
 
   async function handleFile(e) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
 
-    // Auto-save soal yang belum tersimpan (identitas dll) sebelum import
     if (hasUnsaved && onSaveFirst) {
       setSavingFirst(true);
       try { await onSaveFirst(); } catch {}
       setSavingFirst(false);
     }
 
-    // Validasi Ekstensi & MIME
     if (!file.name.toLowerCase().endsWith(".docx")) {
-      setAlertState({
-        open: true,
-        type: "error",
-        title: "Format File Tidak Valid",
-        message: "Hanya file berekstensi .docx yang diperbolehkan untuk impor soal.",
-      });
+      setAlertState({ open: true, type: "error", title: "Format File Tidak Valid", message: "Hanya file berekstensi .docx yang diperbolehkan untuk impor soal." });
       return;
     }
 
-    // Validasi Ukuran File (Maksimal 5MB)
     const MAX_SIZE = 5 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
-      setAlertState({
-        open: true,
-        type: "warning",
-        title: "Ukuran File Terlalu Besar",
-        message: `Ukuran file ${(file.size / (1024 * 1024)).toFixed(2)} MB melebihi batas maksimal 5 MB.`,
-      });
+      setAlertState({ open: true, type: "warning", title: "Ukuran File Terlalu Besar", message: `Ukuran file ${(file.size / (1024 * 1024)).toFixed(2)} MB melebihi batas maksimal 5 MB.` });
       return;
     }
 
@@ -2634,87 +2640,41 @@ function ImportDocxButton({ slug, onImported, onImportedSilent, onImportGuard, h
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "Gagal mengimpor file.");
       const count = data?.data?.list_soal?.length ?? 0;
-      setAlertState({
-        open: true,
-        type: "success",
-        title: "Impor Soal Berhasil",
-        message: `Berhasil mengimpor ${count} butir soal dari dokumen Word ke dalam formulir.`,
-      });
+      setAlertState({ open: true, type: "success", title: "Impor Soal Berhasil", message: `Berhasil mengimpor ${count} butir soal dari dokumen Word ke dalam formulir.` });
       setTimeout(() => { onImportedSilent?.(); }, 500);
     } catch (e) {
-      setAlertState({
-        open: true,
-        type: "error",
-        title: "Gagal Impor Soal",
-        message: e.message || "Terjadi kesalahan saat memproses file .docx.",
-      });
+      setAlertState({ open: true, type: "error", title: "Gagal Impor Soal", message: e.message || "Terjadi kesalahan saat memproses file .docx." });
       onImportGuard?.(false);
     } finally {
       setImporting(false);
     }
   }
 
-  const [showGuide, setShowGuide] = useState(false);
-
   return (
-    <div className="space-y-3 pt-2">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {/* Tombol Unduh Template */}
-        <a
-          href="/soal.docx"
-          download="Template_Soal_FormMaker.docx"
-          className="py-3 px-4 rounded-2xl border-2 border-dashed text-[13.5px] font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
-          style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = "#1a4fa0"; e.currentTarget.style.color = "#1a4fa0"; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--fm-card-border)"; e.currentTarget.style.color = "var(--fm-text-2)"; }}
-        >
-          <Download size={17} /> Unduh Template Soal (.docx)
-        </a>
-
-        {/* Tombol Upload File Docx */}
-        <div className="relative">
-          <label
-            className="w-full py-3 pl-4 pr-12 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 text-[13.5px] font-semibold transition-all cursor-pointer shadow-xs"
-            style={{ borderColor: "var(--fm-card-border)", color: importing || savingFirst ? "var(--fm-text-3)" : "var(--fm-text-2)", backgroundColor: "transparent", opacity: importing || savingFirst ? 0.6 : 1 }}
-            onMouseEnter={e => { if (!importing && !savingFirst) { e.currentTarget.style.borderColor = "#1a4fa0"; e.currentTarget.style.color = "#1a4fa0"; }}}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--fm-card-border)"; e.currentTarget.style.color = "var(--fm-text-2)"; }}
-          >
-            {savingFirst ? (
-              <>
-                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                Menyimpan soal dulu...
-              </>
-            ) : importing ? (
-              <>
-                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                Mengimpor soal...
-              </>
-            ) : (
-              <>
-                <UploadCloud size={17} /> Impor Soal dari Word (.docx)
-              </>
-            )}
-            <input type="file" accept=".docx" onChange={handleFile} disabled={importing || savingFirst} className="hidden" />
-          </label>
-          {/* Info button — panduan struktur template */}
-          <button
-            type="button"
-            onClick={() => setShowGuide(true)}
-            title="Lihat panduan struktur template"
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center text-[#1a4fa0] bg-[#eef5fb] hover:bg-[#daeaf7] transition-colors"
-          >
-            <Info size={15} />
-          </button>
-        </div>
-      </div>
-
-      {toast && (
-        <div className="px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-green-700 text-[13px] text-center">
-          {toast}
-        </div>
-      )}
-
-      {/* Alert Modal untuk Hasil Import / Error Validasi */}
+    <>
+      <label
+        className="w-full py-4 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 text-[15px] font-semibold transition-all cursor-pointer"
+        style={{ borderColor: "var(--fm-card-border)", color: importing || savingFirst ? "var(--fm-text-3)" : "var(--fm-text-2)", backgroundColor: "transparent", opacity: importing || savingFirst ? 0.6 : 1 }}
+        onMouseEnter={e => { if (!importing && !savingFirst) { e.currentTarget.style.borderColor = "#1a4fa0"; e.currentTarget.style.color = "#1a4fa0"; }}}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--fm-card-border)"; e.currentTarget.style.color = "var(--fm-text-2)"; }}
+      >
+        {savingFirst ? (
+          <>
+            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+            Menyimpan dulu...
+          </>
+        ) : importing ? (
+          <>
+            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+            Mengimpor soal...
+          </>
+        ) : (
+          <>
+            <UploadCloud size={20} /> Impor Soal (.docx)
+          </>
+        )}
+        <input type="file" accept=".docx" onChange={handleFile} disabled={importing || savingFirst} className="hidden" />
+      </label>
       <AlertModal
         open={alertState.open}
         type={alertState.type}
@@ -2722,10 +2682,7 @@ function ImportDocxButton({ slug, onImported, onImportedSilent, onImportGuard, h
         message={alertState.message}
         onConfirm={() => setAlertState({ ...alertState, open: false })}
       />
-
-      {/* Modal Panduan Struktur Template */}
-      {showGuide && <TemplateGuideModal onClose={() => setShowGuide(false)} />}
-    </div>
+    </>
   );
 }
 
