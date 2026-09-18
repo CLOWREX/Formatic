@@ -1161,14 +1161,14 @@ function SoalItem({ soal, idx, answers, setAnswer, toggleOption, errorSoalId, so
   const isError = errorSoalId === soal.id;
   return (
     <div ref={el => { if (el) soalRefs.current[soal.id] = el; }}
-      className={`rounded-2xl border shadow-sm p-6 mb-4 transition-all ${isError ? "border-red-400 ring-2 ring-red-100" : ""}`}
+      className={`rounded-2xl border shadow-sm p-6 mb-4 transition-all overflow-hidden ${isError ? "border-red-400 ring-2 ring-red-100" : ""}`}
       style={{ backgroundColor: theme.cardBg || "var(--fm-card)", borderColor: isError ? undefined : (theme.borderCard || "var(--fm-card-border)") }}>
       <div className="flex items-start gap-3 mb-5">
         <span className="w-9 h-9 rounded-xl text-[14px] font-extrabold grid place-items-center shrink-0 mt-0.5"
           style={{ backgroundColor: `${theme.accentColor || "#1a4fa0"}15`, color: theme.accentColor || "#1a4fa0" }}>
           {idx + 1}
         </span>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0 overflow-hidden">
           <RichTextDisplay content={soal.question} className="text-[16px] font-bold leading-snug" style={{ color: theme.titleColor || "#102f56" }} />
           <span className="text-[12px] font-medium block mt-1" style={{ color: theme.accentColor || "#1a4fa0" }}>{TYPE_LABEL[soal.type] ?? soal.type}</span>
         </div>

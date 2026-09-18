@@ -571,3 +571,45 @@ code.inline-code {
     transform: translateY(0) scale(1);
   }
 }
+
+/* ── FillForm: soal/opsi panjang tidak overflow keluar container ── */
+.rich-display {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.rich-display * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.rich-display pre,
+.rich-display code,
+.rich-display .hljs-pre {
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.rich-display img {
+  max-width: 100%;
+  height: auto;
+}
+
+.rich-display table {
+  width: 100%;
+  table-layout: fixed;
+  overflow-x: auto;
+  display: block;
+}
+
+/* Opsi jawaban teks panjang */
+.fill-option-label {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
+  flex: 1;
+}
