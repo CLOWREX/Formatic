@@ -8,12 +8,12 @@ module.exports = {
   development: {
     client: 'pg',
     connection: {
-      database: process.env.DB_NAME_FORM,
+      database: process.env.DB_NAME_FORM || 'postgres',
       user: process.env.DB_USER,
       password: process.env.DB_PASS,
       host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      // ssl: { rejectUnauthorized: false }
+      port: Number(process.env.DB_PORT) || 6543,
+      ssl: { rejectUnauthorized: false }
     },
     migrations: {
       directory: './migration'
@@ -26,12 +26,12 @@ module.exports = {
   production: {
     client: 'pg',
     connection: {
-      database: process.env.DB_NAME_FORM,
+      database: process.env.DB_NAME_FORM || 'postgres',
       user: process.env.DB_USER,
       password: process.env.DB_PASS,
       host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      // ssl: { rejectUnauthorized: false }
+      port: Number(process.env.DB_PORT) || 6543,
+      ssl: { rejectUnauthorized: false }
     },
     migrations: {
       directory: './migration'

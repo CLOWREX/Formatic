@@ -14,6 +14,7 @@ import Profile from "./pages/Dashboard/Profile";
 import History from "./pages/Dashboard/History";
 import Collaborate from "./pages/Dashboard/Collaborate";
 import Discovery from "./pages/Dashboard/Discovery";
+import Monitoring from "./pages/Dashboard/Monitoring";
 
 // isAnimating: true berarti halaman ini adalah "prev" yang sedang slide keluar
 // — jangan boleh trigger redirect apapun saat animasi
@@ -171,6 +172,7 @@ function PageContent({ location }) {
       <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
       <Route path="/discovery" element={<ProtectedRoute><Discovery /></ProtectedRoute>} />
       <Route path="/form/:slug/collaborate" element={<ProtectedRoute><Collaborate /></ProtectedRoute>} />
+      <Route path="/form/:slug/monitoring" element={<ProtectedRoute><Monitoring /></ProtectedRoute>} />
       <Route path="/trash" element={<ProtectedRoute><Trash /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />

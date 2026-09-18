@@ -140,8 +140,8 @@ export default function Discovery() {
                 style={{ backgroundColor: "var(--fm-card)", borderColor: "var(--fm-border)", color: "var(--fm-text)" }}
               />
             </div>
-            <div className="flex flex-wrap gap-2">
-              {/* Primary filter */}
+            <div className="flex flex-wrap gap-2 items-center min-h-[42px]">
+              {/* Primary filter buttons */}
               {["Semua", ...primaryList.map(p => p.name)].map(p => (
                 <button key={p} onClick={() => setPrimaryFilter(p)}
                   className="px-4 py-2 rounded-xl text-[13px] font-semibold border transition capitalize"
@@ -152,20 +152,33 @@ export default function Discovery() {
                   {p === "Semua" ? "Semua" : p}
                 </button>
               ))}
-              {/* Sub kategori filter */}
+
+              {/* Sub kategori — dropdown dengan animasi */}
               {subList.length > 0 && (
                 <>
                   <span className="self-center text-gray-400 text-[12px]">•</span>
-                  {["Semua", ...subList.map(s => s.name)].map(s => (
-                    <button key={s} onClick={() => setSubFilter(s)}
-                      className="px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition"
-                      style={subFilter === s
-                        ? { backgroundColor: "#6366f1", color: "#fff", borderColor: "#6366f1" }
-                        : { backgroundColor: "var(--fm-card)", color: "var(--fm-text-2)", borderColor: "var(--fm-border)" }
-                      }>
-                      {s}
-                    </button>
-                  ))}
+                  <div className="relative" style={{ animation: "fadeSlideIn 0.2s ease" }}>
+                    <select
+                      value={subFilter}
+                      onChange={e => setSubFilter(e.target.value)}
+                      className="appearance-none pl-3 pr-8 py-2 rounded-xl border text-[13px] font-semibold outline-none cursor-pointer transition-all duration-200"
+                      style={{
+                        backgroundColor: subFilter !== "Semua" ? "#6366f1" : "var(--fm-card)",
+                        color: subFilter !== "Semua" ? "#fff" : "var(--fm-text-2)",
+                        borderColor: subFilter !== "Semua" ? "#6366f1" : "var(--fm-border)",
+                      }}
+                    >
+                      <option value="Semua">Semua Mapel</option>
+                      {subList.map(s => (
+                        <option key={s.id} value={s.name}>{s.name}</option>
+                      ))}
+                    </select>
+                    {/* Chevron icon */}
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[11px]"
+                      style={{ color: subFilter !== "Semua" ? "#fff" : "var(--fm-text-2)" }}>
+                      ▾
+                    </span>
+                  </div>
                 </>
               )}
             </div>
