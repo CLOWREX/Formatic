@@ -244,7 +244,7 @@ export default function MyForms() {
     const formSlug = form.slug ?? form.form_slug;
     try {
       const response = await fetch(`${FORM_API_URL}/form?form_slug=${formSlug}`, {
-        method: "PATCH",
+        method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
         body: JSON.stringify({ status: "private" }),
       });
