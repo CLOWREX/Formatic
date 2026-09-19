@@ -19,7 +19,7 @@ app.use(cors({
 }))
 
 function jwtToken(payload) {
-    return jwt.sign(payload, process.env.SECRET, { expiresIn: '365d' })
+    return jwt.sign(payload, process.env.SECRET, { expiresIn: '1d' })
 }
 
 function isPasswordStrong(password) {
