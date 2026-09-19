@@ -481,7 +481,7 @@ export default function QuillEditor({ value, onChange, placeholder = 'Tulis pert
 
   return (
     <>
-      <div className="quill-wrapper rounded-xl border border-gray-200 overflow-hidden bg-white hover:border-[#1a4fa0] focus-within:border-[#1a4fa0] focus-within:ring-2 focus-within:ring-[#1a4fa0]/15 transition-all">
+      <div className="quill-wrapper rounded-xl border border-gray-200 bg-white hover:border-[#1a4fa0] focus-within:border-[#1a4fa0] focus-within:ring-2 focus-within:ring-[#1a4fa0]/15 transition-all">
         <div ref={containerRef} />
 
         {/* ── Tombol ekstra: LaTeX & Code ─────────────────────────────── */}
