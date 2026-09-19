@@ -426,6 +426,16 @@ body {
   border-top-left-radius: 0.75rem;
   border-top-right-radius: 0.75rem;
   padding: 8px 12px;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  overflow: visible !important;
+}
+
+.quill-wrapper .ql-toolbar.ql-snow .ql-formats {
+  display: inline-flex !important;
+  flex-wrap: wrap !important;
+  margin-right: 8px !important;
+  margin-bottom: 4px !important;
 }
 
 .quill-wrapper .ql-container.ql-snow {
