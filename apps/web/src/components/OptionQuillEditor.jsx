@@ -30,8 +30,26 @@ export default function OptionQuillEditor({ value, onChange, placeholder = 'Tuli
 
     quillRef.current = quill;
 
+    // Capture paste listener to preserve raw code and HTML document tags cleanly
+    const handlePaste = (e) => {
+      const text = e.clipboardData?.getData('text/plain');
+      if (text && /<(!doctype|html|head|meta|link|script|style|body|header|footer|nav)[\s>/]/i.test(text)) {
+        e.preventDefault();
+        e.stopPropagation();
+        const selection = quill.getSelection(true);
+        const idx = selection ? selection.index : quill.getLength();
+        quill.insertText(idx, text, 'user');
+        quill.setSelection(idx + text.length, 0);
+      }
+    };
+    editorEl.addEventListener('paste', handlePaste, true);
+
     if (value) {
-      quill.clipboard.dangerouslyPasteHTML(value);
+      try {
+        quill.clipboard.dangerouslyPasteHTML(value);
+      } catch {
+        quill.setText(value);
+      }
     }
 
     quill.on('text-change', (delta, oldDelta, source) => {
@@ -43,6 +61,10 @@ export default function OptionQuillEditor({ value, onChange, placeholder = 'Tuli
         onChange(isEmpty ? '' : html);
       }
     });
+
+    return () => {
+      editorEl.removeEventListener('paste', handlePaste, true);
+    };
   }, []);
 
   // Sync value dari luar kalau berubah (mis. reset)
@@ -61,7 +83,11 @@ export default function OptionQuillEditor({ value, onChange, placeholder = 'Tuli
     if (normValue !== normCurrent) {
       isUpdatingRef.current = true;
       if (normValue) {
-        quill.clipboard.dangerouslyPasteHTML(normValue);
+        try {
+          quill.clipboard.dangerouslyPasteHTML(normValue);
+        } catch {
+          quill.setText(normValue);
+        }
       } else {
         quill.setText('');
       }

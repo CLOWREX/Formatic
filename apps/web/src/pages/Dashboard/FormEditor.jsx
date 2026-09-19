@@ -1132,7 +1132,7 @@ function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField
         {showPreview && (
           <div className="mt-3 rounded-xl border border-[#d4e5fa] bg-[#f7fafd] px-5 py-4">
             <p className="text-[10.5px] font-bold text-[#1a4fa0] uppercase tracking-wider mb-2 opacity-60">Preview tampilan responden</p>
-            {question.question && question.question.replace(/<[^>]*>/g, '').trim() ? (
+            {question.question && question.question.trim() ? (
               <RichTextDisplay content={question.question} className="text-[16px] font-semibold text-[#102f56] leading-snug" />
             ) : (
               <p className="text-[14px] text-gray-300 italic">Ketik pertanyaan untuk melihat preview...</p>
