@@ -5,7 +5,7 @@ import api, { FORM_API_URL, flattenForm } from "../../utils/api";
 import AlertModal from "../../components/AlertModal";
 import * as XLSX from "xlsx";
 import { socket } from "../../utils/socket";
-import { ArrowLeft, Link2, Trash2, Plus, Copy, Share2, Check, ListPlus, ListChecks, FileQuestion, FileText, UploadCloud, GripVertical, ImagePlus, X, QrCode, Download, Palette, Info, BookOpen, ChevronRight, IdCard, Eye, EyeOff, Paperclip, Lightbulb, AlertTriangle, Music, Lock, LockKeyhole, LockOpen, Target, Star, Inbox, Users, CheckCircle2, Clock, PieChart, Dices, PenLine, Save, RefreshCw, Timer, Trophy, Shuffle, Layers, Unlink, FileDown } from "lucide-react";
+import { ArrowLeft, Link2, Trash2, Plus, Copy, Share2, Check, ListPlus, ListChecks, FileQuestion, FileText, UploadCloud, GripVertical, ImagePlus, X, QrCode, Download, Palette, Info, BookOpen, ChevronRight, IdCard, Paperclip, Lightbulb, AlertTriangle, Music, LockKeyhole, Target, Star, Inbox, Users, CheckCircle2, Clock, PieChart, Dices, PenLine, Save, RefreshCw, Timer, Trophy, Shuffle, Layers, Unlink, FileDown } from "lucide-react";
 import QRCode from "qrcode";
 import QuillEditor from "../../components/QuillEditor";
 import OptionQuillEditor from "../../components/OptionQuillEditor";
@@ -775,32 +775,14 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
     localStorage.getItem(`score_type_${form?.slug ?? slug}`) ?? "none"
   );
 
-  // Lock state — simpan set soal ID yang dikunci di localStorage
-  const lockKey = `locked_soal_${form?.slug ?? slug}`;
-  const [lockedIds, setLockedIds] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`locked_soal_${form?.slug ?? slug}`);
-      return new Set(saved ? JSON.parse(saved) : []);
-    } catch { return new Set(); }
-  });
-
-  function toggleLock(soalId) {
-    if (!soalId) return; // soal baru (_new) belum punya id, skip
-    setLockedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(soalId)) next.delete(soalId);
-      else next.add(soalId);
-      localStorage.setItem(lockKey, JSON.stringify([...next]));
-      return next;
-    });
-  }
-  // --- Bulk Select Mode (pilih banyak soal ala WA buat grup wacana) ---
+  // --- Bulk Select Mode (pilih banyak soal ala WA buat grup soal) ---
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedQIdxs, setSelectedQIdxs] = useState(() => new Set());
 
   function toggleSelectMode() {
     setIsSelectMode((v) => !v);
     setSelectedQIdxs(new Set());
+    setEditingIdx(null);
   }
 
   function toggleSelectQuestion(idx) {
@@ -824,7 +806,7 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
       onUpdateQ(i, "group_text", q.group_text);
       if (q.showGroup) onUpdateQ(i, "showGroup", true);
     });
-    onShowToast?.(`${sorted.length} soal digabung ke Wacana #${newGroupId}!`);
+    onShowToast?.(`${sorted.length} soal digabung ke Grup Soal #${newGroupId}!`);
     setIsSelectMode(false);
     setSelectedQIdxs(new Set());
   }
@@ -840,11 +822,30 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
       onUpdateQ(i, "group_text", null);
       onUpdateQ(i, "showGroup", false);
     });
-    onShowToast?.(`${sorted.length} soal dilepas dari wacana.`);
+    onShowToast?.(`${sorted.length} soal dilepas dari grup soal.`);
     setIsSelectMode(false);
     setSelectedQIdxs(new Set());
   }
   // ------------------------------------------------------------------
+
+  // --- Click-to-edit soal: 1 kartu expanded, klik luar = tutup ---
+  const [editingIdx, setEditingIdx] = useState(null);
+  const listRef = useRef(null);
+  useEffect(() => {
+    function onDown(e) {
+      if (listRef.current && !listRef.current.contains(e.target)) setEditingIdx(null);
+    }
+    function onKey(e) {
+      if (e.key === "Escape") setEditingIdx(null);
+    }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+  // ---------------------------------------------------------------
 
   // Sync saat form berubah
   useEffect(() => {
@@ -882,7 +883,7 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
     }
   }
   return (
-    <div className="max-w-3xl mx-auto py-8 px-4 md:px-6 xl:px-8 space-y-5 relative" style={{ paddingBottom: 80 }}>
+    <div ref={listRef} className="max-w-3xl mx-auto py-8 px-4 md:px-6 xl:px-8 space-y-5 relative" style={{ paddingBottom: 80 }}>
       {/* Form header card */}
       <div
         className="rounded-2xl shadow-[0_10px_34px_rgba(23,64,120,0.08)] p-7 border transition-colors"
@@ -968,7 +969,8 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
             {isNewPage && (
               <div className="pt-2">
                 {currPage === 1 ? (
-                  <div className="bg-[#f8fafc] rounded-2xl border border-[#e2e8f0] p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+                  <div className="rounded-2xl border p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs"
+                    style={{ backgroundColor: "var(--fm-card)", borderColor: "var(--fm-card-border)" }}>
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-[#1a4fa0] text-white flex items-center justify-center font-black text-[14px] shadow-2xs">
                         1
@@ -983,13 +985,6 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
                         <p className="text-[12px] text-gray-400">Halaman awal formulir / identitas</p>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => onAddQuestion(1)}
-                      className="px-3 py-1.5 rounded-xl bg-white border border-[#d4e5fa] text-[#1a4fa0] hover:bg-[#eef5fb] text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                    >
-                      <Plus size={13} strokeWidth={2.5} /> Tambah Soal di Hal. 1
-                    </button>
                   </div>
                 ) : (
                   <div className="relative pt-3 pb-1">
@@ -1001,7 +996,8 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
                       <div className="flex-1 h-[2px] bg-gradient-to-l from-transparent via-[#1a4fa0]/20 to-[#1a4fa0]/40 rounded-full" />
                     </div>
 
-                    <div className="bg-gradient-to-r from-[#f0f6fe] to-[#e8f1fd] rounded-2xl border border-[#cbe0f8] p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+                    <div className="rounded-2xl border p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3"
+                      style={{ backgroundColor: "var(--fm-card)", borderColor: "var(--fm-card-border)" }}>
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-white text-[#1a4fa0] flex items-center justify-center font-black text-[14px] shadow-2xs border border-[#d4e5fa]">
                           {currPage}
@@ -1020,13 +1016,6 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
       </div>
 
                       <div className="flex items-center gap-2 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => onAddQuestion(currPage)}
-                          className="px-3 py-1.5 rounded-xl bg-[#1a4fa0] text-white hover:opacity-90 text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                        >
-                          <Plus size={13} strokeWidth={2.5} /> Tambah Soal di Hal. {currPage}
-                        </button>
                         <button
                           type="button"
                           onClick={() => onRemovePageBreak(currPage)}
@@ -1070,11 +1059,11 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
                 onShowToast={onShowToast}
                 scoreType={scoreType}
                 totalSoal={questions.length}
-                isLocked={lockedIds.has(q.id)}
-                onToggleLock={() => toggleLock(q.id)}
                 isSelectMode={isSelectMode}
                 isSelected={selectedQIdxs.has(qIdx)}
                 onToggleSelect={() => toggleSelectQuestion(qIdx)}
+                isEditing={editingIdx === qIdx && !isSelectMode}
+                onStartEdit={() => setEditingIdx(qIdx)}
               />
             </div>
           </div>
@@ -1135,19 +1124,6 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
 
           <button
             type="button"
-            onClick={onAddNewPage}
-            className="group relative w-11 h-11 rounded-xl border flex items-center justify-center transition-all cursor-pointer hover:opacity-80"
-            style={{ backgroundColor: "var(--fm-hover)", color: "#6366f1", borderColor: "#a5b4fc" }}
-            title="Tambah Halaman Baru (Page Break)"
-          >
-            <Layers size={18} />
-            <span className="pointer-events-none absolute right-full mr-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg bg-gray-900 px-2.5 py-1 text-[11px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-              Tambah Halaman Baru (Page Break)
-            </span>
-          </button>
-
-          <button
-            type="button"
             onClick={onAddIdentityPage}
             className="group relative w-11 h-11 rounded-xl border flex items-center justify-center transition-all cursor-pointer hover:opacity-80"
             style={{ backgroundColor: "var(--fm-hover)", color: "#059669", borderColor: "#6ee7b7" }}
@@ -1168,11 +1144,11 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
               color: isSelectMode ? "#fff" : "#8e4de7",
               borderColor: isSelectMode ? "#1a4fa0" : "#c4b5fd",
             }}
-            title="Pilih beberapa soal (buat / lepas wacana)"
+            title="Pilih beberapa soal (buat / lepas grup soal)"
           >
             <ListChecks size={18} />
             <span className="pointer-events-none absolute right-full mr-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg bg-gray-900 px-2.5 py-1 text-[11px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-              Pilih beberapa soal (wacana)
+              Pilih beberapa soal (grup soal)
             </span>
           </button>
         </div>
@@ -1200,7 +1176,7 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
             className="px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition-all cursor-pointer disabled:opacity-40"
             style={{ borderColor: "#fca5a5", color: "#ef4444" }}
           >
-            Lepas wacana
+            Lepas grup
           </button>
           <button
             type="button"
@@ -1209,7 +1185,7 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
             className="px-3 py-1.5 rounded-xl text-[12px] font-bold text-white transition-all cursor-pointer disabled:opacity-40 flex items-center gap-1.5"
             style={{ backgroundColor: "#1a4fa0" }}
           >
-            <BookOpen size={13} /> Jadikan 1 wacana
+            <BookOpen size={13} /> Jadikan 1 grup soal
           </button>
         </div>
       )}
@@ -1218,11 +1194,13 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
 }
 
 /* ── Question Card ──────────────────────────────────────────── */
-function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField, onAddOpt, onRemoveOpt, onToggleCorrect, onRemove, onDuplicate, onAddQuestionAfter, onAddPageBreakAfter, onDragHandleStart, onDragHandleEnd, onShowToast, scoreType, totalSoal, isLocked, onToggleLock, isSelectMode, isSelected, onToggleSelect }) {
+function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField, onAddOpt, onRemoveOpt, onToggleCorrect, onRemove, onDuplicate, onAddQuestionAfter, onAddPageBreakAfter, onDragHandleStart, onDragHandleEnd, onShowToast, scoreType, totalSoal, isSelectMode, isSelected, onToggleSelect, isEditing, onStartEdit }) {
   const hasOptions = ["radio", "checkbox"].includes(question.type);
-  const [showPreview, setShowPreview] = useState(false);
   // Semua soal bisa diedit (tidak hanya yang baru)
   const editable = true;
+  // ponytail: soal kosong otomatis expanded biar langsung bisa diketik
+  const isEmptyText = !question.question || question.question.replace(/<[^>]*>/g, '').trim() === '';
+  const showEditor = isEditing || isEmptyText;
   return (
     <div onClick={isSelectMode ? onToggleSelect : undefined}
       className={`relative rounded-2xl border shadow-[0_10px_34px_rgba(23,64,120,0.08)] p-6 transition-all hover:shadow-[0_14px_40px_rgba(23,64,120,0.12)] ${
@@ -1276,69 +1254,81 @@ function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField
           <label className="block text-[12px] font-extrabold text-[#1a4fa0] uppercase tracking-wider flex items-center gap-1.5">
             Pertanyaan:
           </label>
-          <button
-            type="button"
-            onClick={() => setShowPreview(v => !v)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
-              showPreview
-                ? "bg-[#eef5fb] border-[#1a4fa0] text-[#1a4fa0]"
-                : "bg-white border-gray-200 text-gray-400 hover:border-[#1a4fa0] hover:text-[#1a4fa0]"
-            }`}
-          >
-            {showPreview ? <Eye size={13} /> : <EyeOff size={13} />}
-            {showPreview ? "Sembunyikan Preview" : "Live Preview"}
-          </button>
+          {!showEditor && (
+            <span className="text-[11px] font-medium" style={{ color: "var(--fm-text-3)" }}>
+              Klik teks untuk mengedit
+            </span>
+          )}
         </div>
-        <QuillEditor
-          value={question.question}
-          onChange={(val) => onUpdate("question", val)}
-          placeholder="Ketik pertanyaan di sini"
-        />
-        {/* Live Preview */}
-        {showPreview && (
-          <div className="mt-3 rounded-xl border border-[#d4e5fa] bg-[#f7fafd] px-5 py-4">
-            <p className="text-[10.5px] font-bold text-[#1a4fa0] uppercase tracking-wider mb-2 opacity-60">Preview tampilan responden</p>
-            {question.question && question.question.trim() ? (
-              <RichTextDisplay content={question.question} className="text-[16px] font-semibold text-[#102f56] leading-snug" />
-            ) : (
-              <p className="text-[14px] text-gray-300 italic">Ketik pertanyaan untuk melihat preview...</p>
-            )}
+        {showEditor ? (
+          <QuillEditor
+            value={question.question}
+            onChange={(val) => onUpdate("question", val)}
+            placeholder="Ketik pertanyaan di sini"
+          />
+        ) : (
+          <div
+            onClick={onStartEdit}
+            onKeyDown={(e) => { if (e.key === "Enter") onStartEdit?.(); }}
+            role="button"
+            tabIndex={0}
+            title="Klik untuk edit soal"
+            className="rounded-xl border px-4 py-3 cursor-text transition-all min-h-[64px] hover:border-[#1a4fa0]"
+            style={{ borderColor: "var(--fm-border)", backgroundColor: "transparent" }}
+          >
+            <RichTextDisplay content={question.question} className="text-[15px] leading-relaxed" />
           </div>
         )}
       </div>
 
-      {/* ── Wacana (dibuat via mode pilih, bukan ketik ID) ───────── */}
+      {/* ── Grup soal: panel cerita bersama (dibuat via mode pilih) ─ */}
       {question.group_id ? (
-        <div className="mb-4 ml-2">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#eef5fb] border border-[#d4e5fa] text-[12px] font-bold text-[#1a4fa0]">
-              <BookOpen size={12} /> Wacana #{question.group_id}
-            </span>
-            <span className="text-[11px] text-gray-400">Soal dengan wacana sama = ditampilkan bersama</span>
-            <button onClick={() => { onUpdate("group_id", null); onUpdate("group_text", null); onUpdate("showGroup", false); }}
-              className="inline-flex items-center gap-1 text-[11px] text-red-400 hover:text-red-600 transition ml-auto"><X size={11} /> Lepas dari wacana</button>
-          </div>
-          {question.group_text != null ? (
-            <div className="pl-3 border-l-2 border-[#d4e5fa]">
-              <label className="text-[11px] font-bold text-[#1a4fa0] uppercase tracking-wide block mb-1">
-                Teks Wacana <span className="normal-case font-normal text-gray-400">(cukup isi di soal pertama wacana ini)</span>
-              </label>
+        question.group_text != null ? (
+          <div className="mb-4 ml-2 rounded-2xl border overflow-hidden" style={{ borderColor: "#d4e5fa", backgroundColor: "var(--fm-hover)" }}>
+            <div className="flex items-center gap-3 px-4 py-3 flex-wrap" style={{ borderBottom: "1px solid var(--fm-border)" }}>
+              <span className="w-9 h-9 rounded-xl bg-[#1a4fa0] text-white grid place-items-center shrink-0">
+                <BookOpen size={17} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[14px] font-extrabold leading-tight" style={{ color: "var(--fm-text)" }}>
+                  Teks Cerita — Grup Soal #{question.group_id}
+                </p>
+                <p className="text-[11.5px]" style={{ color: "var(--fm-text-2)" }}>
+                  Cerita/konteks yang dipakai semua soal di grup soal ini
+                </p>
+              </div>
+              <button onClick={() => { onUpdate("group_id", null); onUpdate("group_text", null); onUpdate("showGroup", false); }}
+                className="inline-flex items-center gap-1 text-[11px] text-red-400 hover:text-red-600 transition ml-auto shrink-0"><X size={11} /> Lepas</button>
+            </div>
+            <div className="px-4 py-3">
+              <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-blue-50 border border-blue-100 mb-2.5">
+                <Lightbulb size={14} className="text-blue-500 shrink-0 mt-0.5" />
+                <p className="text-[12px] text-blue-700 leading-relaxed">
+                  Tulis cerita grup soal di bawah ini.
+                </p>
+              </div>
               <textarea
-                rows={3}
+                rows={4}
                 value={question.group_text ?? ""}
                 onChange={e => onUpdate("group_text", e.target.value || null)}
-                placeholder="Tulis wacana/teks yang dipakai bersama soal-soal dalam wacana ini..."
-                className="w-full border border-[#d4e5fa] rounded-xl px-3 py-2 text-[13px] outline-none focus:border-[#1a4fa0] resize-none bg-transparent"
+                placeholder={'Contoh: Pada hari Minggu, Budi pergi ke pasar membeli 5 apel dan 3 jeruk. Di jalan pulang, ia memberikan 2 apel kepada temannya...'}
+                className="w-full border rounded-xl px-3.5 py-2.5 text-[13.5px] outline-none focus:border-[#1a4fa0] focus:ring-2 focus:ring-[#1a4fa0]/15 resize-none"
+                style={{ backgroundColor: "var(--fm-input-bg)", borderColor: "var(--fm-border)", color: "var(--fm-text)" }}
               />
             </div>
-          ) : (
-            <p className="text-[11px] text-gray-400 ml-1">
-              Teks wacana diisi di soal pertama wacana ini.{" "}
-              <button onClick={() => { onUpdate("group_text", ""); onUpdate("showGroup", true); }}
-                className="text-[#1a4fa0] font-semibold hover:underline">Pindahkan / isi di sini</button>
-            </p>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="mb-4 ml-2 flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-dashed text-[12px] flex-wrap" style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)" }}>
+            <span className="inline-flex items-center gap-1.5 font-bold text-[#1a4fa0]">
+              <BookOpen size={13} /> Grup Soal #{question.group_id}
+            </span>
+            <span>Cerita grup soal diisi di soal pertama.</span>
+            <button onClick={() => { onUpdate("group_text", ""); onUpdate("showGroup", true); }}
+              className="text-[#1a4fa0] font-semibold hover:underline ml-auto">Isi di sini</button>
+            <button onClick={() => { onUpdate("group_id", null); onUpdate("group_text", null); onUpdate("showGroup", false); }}
+              className="inline-flex items-center gap-1 text-red-400 hover:text-red-600 transition"><X size={11} /> Lepas</button>
+          </div>
+        )
       ) : null}
 
       {hasOptions && (
@@ -1536,18 +1526,6 @@ function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField
         <div className="flex items-center gap-1">
           <button title="Duplikat" onClick={onDuplicate} className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:bg-[#eef5fb] hover:text-[#1a4fa0] transition-all"><Copy size={16} /></button>
           <button title="Hapus" onClick={onRemove} className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all"><Trash2 size={16} /></button>
-          {/* Tombol lock — kunci posisi soal agar tidak ikut shuffle */}
-          <button
-            title={isLocked ? "Soal terkunci (tidak diacak) — klik untuk buka kunci" : "Kunci posisi soal (tidak ikut shuffle)"}
-            onClick={onToggleLock}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-              isLocked
-                ? "bg-amber-50 text-amber-500 hover:bg-amber-100"
-                : "text-gray-300 hover:bg-[#eef5fb] hover:text-[#1a4fa0]"
-            }`}
-          >
-            {isLocked ? <Lock size={16} /> : <LockOpen size={16} />}
-          </button>
           {/* Tombol sisipkan Pertanyaan Baru setelah ini */}
           {onAddQuestionAfter && (
             <button

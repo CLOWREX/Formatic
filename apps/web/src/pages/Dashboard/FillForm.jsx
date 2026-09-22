@@ -834,13 +834,12 @@ export default function FillForm() {
               (!prevSoal || prevSoal.group_id !== soal.group_id);
             return (
               <div key={soal.id ?? idx}>
-                {/* Group wacana header */}
+                {/* Group bacaan header */}
                 {showGroupHeader && (
                   <div className="mb-4 rounded-2xl border border-[#d4e5fa] overflow-hidden"
                     style={{ backgroundColor: "var(--fm-card)" }}>
                     <div className="px-4 py-2 bg-[#eef5fb] border-b border-[#d4e5fa] flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#1a4fa0] uppercase tracking-wider"><FileText size={12} /> Wacana / Teks</span>
-                      <span className="text-[11px] text-gray-400">Group #{soal.group_id}</span>
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#1a4fa0] uppercase tracking-wider"><FileText size={12} /> Bacaan</span>
                     </div>
                     <div className="px-5 py-4">
                       <p className="text-[14px] leading-relaxed whitespace-pre-wrap" style={{ color: "var(--fm-text)" }}>
@@ -1022,13 +1021,12 @@ export default function FillForm() {
             (!prevSoalS || prevSoalS.group_id !== soal.group_id);
           return (
             <div key={soal.id ?? qi}>
-              {/* Group wacana header */}
+              {/* Group bacaan header */}
               {showGroupHeaderS && (
                 <div className="mb-4 rounded-2xl border border-[#d4e5fa] overflow-hidden"
                   style={{ backgroundColor: "var(--fm-card)" }}>
                   <div className="px-4 py-2 bg-[#eef5fb] border-b border-[#d4e5fa] flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#1a4fa0] uppercase tracking-wider"><FileText size={12} /> Wacana / Teks</span>
-                    <span className="text-[11px] text-gray-400">Group #{soal.group_id}</span>
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#1a4fa0] uppercase tracking-wider"><FileText size={12} /> Bacaan</span>
                   </div>
                   <div className="px-5 py-4">
                     <p className="text-[14px] leading-relaxed whitespace-pre-wrap" style={{ color: "var(--fm-text)" }}>

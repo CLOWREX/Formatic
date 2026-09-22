@@ -569,8 +569,22 @@ body {
   margin-right: 6px;
 }
 
+.option-quill-wrapper .ql-toolbar {
+  padding-right: 78px !important;
+}
+
+.option-quill-wrapper .option-quill-container .ql-toolbar {
+  padding-right: 78px !important;
+}
+
 /* Dark mode */
 [data-theme="dark"] .option-quill-wrapper {
+  border-color: var(--fm-card-border) !important;
+}
+
+[data-theme="dark"] .option-rumus-btn {
+  color: #60a5fa !important;
+  background-color: var(--fm-card) !important;
   border-color: var(--fm-card-border) !important;
 }
 

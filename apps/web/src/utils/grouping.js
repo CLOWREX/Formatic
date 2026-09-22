@@ -1,4 +1,4 @@
-// ponytail: pure helper biar logika grup wacana bisa dites tanpa render React
+// ponytail: pure helper biar logika grup soal bisa dites tanpa render React
 export function getNextGroupId(questions) {
   let max = 0;
   for (const q of questions ?? []) {
