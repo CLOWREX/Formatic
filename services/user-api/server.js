@@ -96,7 +96,7 @@ app.post('/user/register', registerLimit, async (req, res) => {
         if (!isPasswordStrong(isSpace)) {
             return res.status(400).json({
                 status: 400,
-                message: "Password Min 8 Char, 1 Kapital, 1 Lower"
+                message: "Password Min 8 Char, 1 Kapital, 1 Lower, 1 Angka"
             })
         }
 
