@@ -95,7 +95,7 @@ export default function Register() {
 
           <div>
             <h1 className="text-5xl lg:text-6xl font-bold tracking-tight mb-4 text-white">
-              Form<span style={{ color: COLORS.cyan }}>Matic</span>
+              Form<span style={{ color: COLORS.cyan }}>atic</span>
             </h1>
             <p className="text-white/75 text-base lg:text-lg mb-16 max-w-sm">
               Create forms, collect responses, and gain insights with ease
@@ -187,7 +187,7 @@ export default function Register() {
           {/* Logo mobile — hanya muncul di layar kecil */}
           <div className="flex md:hidden justify-center mb-6">
             <h1 className="text-3xl font-bold text-white tracking-tight">
-              Form<span style={{ color: COLORS.cyan }}>Matic</span>
+              Form<span style={{ color: COLORS.cyan }}>atic</span>
             </h1>
           </div>
           <div className="relative w-full bg-white rounded-3xl shadow-2xl px-8 py-10" style={{ backgroundColor: "white" }}>
