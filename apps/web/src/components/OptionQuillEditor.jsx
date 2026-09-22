@@ -1,6 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
+import { LatexModal } from './QuillEditor';
+import { OPTION_LATEX_SYMBOLS } from '../utils/latexSymbols';
 
 // Toolbar minimal untuk opsi jawaban
 const TOOLBAR_OPTIONS = [
@@ -13,6 +15,7 @@ export default function OptionQuillEditor({ value, onChange, placeholder = 'Tuli
   const containerRef  = useRef(null);
   const quillRef      = useRef(null);
   const isUpdatingRef = useRef(false);
+  const [showLatex, setShowLatex] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -95,9 +98,41 @@ export default function OptionQuillEditor({ value, onChange, placeholder = 'Tuli
     }
   }, [value]);
 
+  // Insert teks / formula ke posisi kursor
+  function insertAtCursor(text) {
+    const quill = quillRef.current;
+    if (!quill) return;
+    const range = quill.getSelection(true);
+    const idx   = range ? range.index : quill.getLength();
+    quill.insertText(idx, text, 'user');
+    quill.setSelection(idx + text.length, 0);
+  }
+
   return (
-    <div className="option-quill-wrapper flex-1 min-w-0 rounded-lg border border-gray-200 overflow-hidden bg-white hover:border-[#1a4fa0] focus-within:border-[#1a4fa0] focus-within:ring-2 focus-within:ring-[#1a4fa0]/15 transition-all">
-      <div ref={containerRef} />
-    </div>
+    <>
+      <div className="option-quill-wrapper flex-1 min-w-0 rounded-lg border border-gray-200 bg-white hover:border-[#1a4fa0] focus-within:border-[#1a4fa0] focus-within:ring-2 focus-within:ring-[#1a4fa0]/15 transition-all flex flex-col relative">
+        <div ref={containerRef} className="flex-1" />
+        {/* Tombol sisipkan rumus di toolbar kanan */}
+        <div className="flex items-center justify-end px-2 py-1 bg-gray-50/70 border-t border-gray-100 dark:border-slate-700/60 dark:bg-slate-800/50">
+          <button
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); setShowLatex(true); }}
+            title="Insert rumus matematika / LaTeX ($...$)"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold text-[#1a4fa0] dark:text-[#60a5fa] hover:bg-[#eef5fb] dark:hover:bg-slate-700/60 border border-transparent hover:border-[#d4e5fa] transition cursor-pointer"
+          >
+            <span className="font-serif text-[13px] leading-none font-bold">∑</span>
+            <span>Rumus</span>
+          </button>
+        </div>
+      </div>
+
+      {showLatex && (
+        <LatexModal
+          symbols={OPTION_LATEX_SYMBOLS}
+          onInsert={insertAtCursor}
+          onClose={() => setShowLatex(false)}
+        />
+      )}
+    </>
   );
 }

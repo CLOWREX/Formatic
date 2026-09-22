@@ -5,7 +5,7 @@ import api, { FORM_API_URL, flattenForm } from "../../utils/api";
 import AlertModal from "../../components/AlertModal";
 import * as XLSX from "xlsx";
 import { socket } from "../../utils/socket";
-import { ArrowLeft, Link2, Trash2, Plus, Copy, Share2, Check, ListPlus, FileQuestion, FileText, UploadCloud, GripVertical, ImagePlus, X, QrCode, Download, Palette, Info, BookOpen, ChevronRight, IdCard, Eye, EyeOff, Paperclip, Lightbulb, AlertTriangle, Music, Lock, LockKeyhole, LockOpen, Target, Star, Inbox, Users, CheckCircle2, Clock, PieChart, Dices, PenLine, Save, RefreshCw, Timer, Trophy, Shuffle, Layers, Unlink, FileDown } from "lucide-react";
+import { ArrowLeft, Link2, Trash2, Plus, Copy, Share2, Check, ListPlus, ListChecks, FileQuestion, FileText, UploadCloud, GripVertical, ImagePlus, X, QrCode, Download, Palette, Info, BookOpen, ChevronRight, IdCard, Eye, EyeOff, Paperclip, Lightbulb, AlertTriangle, Music, Lock, LockKeyhole, LockOpen, Target, Star, Inbox, Users, CheckCircle2, Clock, PieChart, Dices, PenLine, Save, RefreshCw, Timer, Trophy, Shuffle, Layers, Unlink, FileDown } from "lucide-react";
 import QRCode from "qrcode";
 import QuillEditor from "../../components/QuillEditor";
 import OptionQuillEditor from "../../components/OptionQuillEditor";
@@ -13,6 +13,7 @@ import RichTextDisplay from "../../components/RichTextDisplay";
 import Toast, { useToast } from "../../components/Toast";
 import ThemeSettingsTab from "./ThemeSettingsTab";
 import { getStoredTheme, setStoredTheme, DEFAULT_FORM_THEME } from "../../utils/theme";
+import { applyBulkGroup, removeBulkGroup } from "../../utils/grouping";
 
 const QUESTION_TYPES = [
   { value: "radio",    label: "Pilihan Ganda" },
@@ -628,7 +629,13 @@ export default function FormEditor() {
         </header>
 
         {/* ── Tabs ──────────────────────────────────────── */}
-        <div className="flex gap-1 px-4 md:px-6 xl:px-9 border-b border-[#dae6f1] bg-white/95 backdrop-blur shrink-0 overflow-x-auto">
+        <div
+          className="flex gap-1 px-4 md:px-6 xl:px-9 border-b backdrop-blur shrink-0 overflow-x-auto transition-colors"
+          style={{
+            backgroundColor: "var(--fm-card)",
+            borderColor: "var(--fm-border)"
+          }}
+        >
           {TABS.filter(tab => {
             // Collaborator hanya bisa akses Pertanyaan
             if (userRole === "Collaborator") return tab === "Pertanyaan";
@@ -639,13 +646,19 @@ export default function FormEditor() {
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-3 text-[14.5px] font-semibold border-b-2 transition-all whitespace-nowrap -mb-px ${
                 activeTab === tab
-                  ? "border-[#1a4fa0] text-[#1a4fa0]"
-                  : "border-transparent text-gray-400 hover:text-gray-600"
+                  ? "border-[#3d91b2] text-[#3d91b2]"
+                  : "border-transparent text-gray-400 hover:text-gray-300"
               }`}
             >
               {tab}
               {tab === "Pertanyaan" && questions.length > 0 && (
-                <span className="ml-2 bg-[#eaf1fb] text-[#1a4fa0] text-[12px] px-2 py-0.5 rounded-full font-bold">
+                <span
+                  className="ml-2 text-[12px] px-2 py-0.5 rounded-full font-bold"
+                  style={{
+                    backgroundColor: "var(--fm-hover)",
+                    color: "var(--fm-text)"
+                  }}
+                >
                   {questions.length}
                 </span>
               )}
@@ -781,6 +794,58 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
       return next;
     });
   }
+  // --- Bulk Select Mode (pilih banyak soal ala WA buat grup wacana) ---
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedQIdxs, setSelectedQIdxs] = useState(() => new Set());
+
+  function toggleSelectMode() {
+    setIsSelectMode((v) => !v);
+    setSelectedQIdxs(new Set());
+  }
+
+  function toggleSelectQuestion(idx) {
+    setSelectedQIdxs((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  }
+
+  function applyBulkGroupUI() {
+    const sorted = [...selectedQIdxs].sort((a, b) => a - b);
+    if (sorted.length === 0) return;
+    // ponytail: id dihitung helper biar konsisten + ketest
+    const { questions: next, newGroupId } = applyBulkGroup(questions, sorted);
+    const sel = new Set(sorted);
+    next.forEach((q, i) => {
+      if (!sel.has(i)) return;
+      onUpdateQ(i, "group_id", q.group_id);
+      onUpdateQ(i, "group_text", q.group_text);
+      if (q.showGroup) onUpdateQ(i, "showGroup", true);
+    });
+    onShowToast?.(`${sorted.length} soal digabung ke Wacana #${newGroupId}!`);
+    setIsSelectMode(false);
+    setSelectedQIdxs(new Set());
+  }
+
+  function removeBulkGroupUI() {
+    const sorted = [...selectedQIdxs].sort((a, b) => a - b);
+    if (sorted.length === 0) return;
+    const next = removeBulkGroup(questions, sorted);
+    const sel = new Set(sorted);
+    next.forEach((q, i) => {
+      if (!sel.has(i)) return;
+      onUpdateQ(i, "group_id", null);
+      onUpdateQ(i, "group_text", null);
+      onUpdateQ(i, "showGroup", false);
+    });
+    onShowToast?.(`${sorted.length} soal dilepas dari wacana.`);
+    setIsSelectMode(false);
+    setSelectedQIdxs(new Set());
+  }
+  // ------------------------------------------------------------------
+
   // Sync saat form berubah
   useEffect(() => {
     const key = `score_type_${form?.slug ?? slug}`;
@@ -819,39 +884,72 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
   return (
     <div className="max-w-3xl mx-auto py-8 px-4 md:px-6 xl:px-8 space-y-5 relative" style={{ paddingBottom: 80 }}>
       {/* Form header card */}
-      <div className="bg-white rounded-2xl shadow-[0_10px_34px_rgba(23,64,120,0.08)] p-7 border border-[#e5eef7]">
-        <h2 className="text-[22px] font-extrabold text-[#102f56] mb-1 tracking-tight leading-snug">
+      <div
+        className="rounded-2xl shadow-[0_10px_34px_rgba(23,64,120,0.08)] p-7 border transition-colors"
+        style={{
+          backgroundColor: "var(--fm-card)",
+          borderColor: "var(--fm-card-border)"
+        }}
+      >
+        <h2 className="text-[22px] font-extrabold mb-1 tracking-tight leading-snug" style={{ color: "var(--fm-text)" }}>
           {form?.title ?? form?.form_title}
         </h2>
-        <p className="text-[13px] text-gray-400 mb-4">{form?.category}</p>
+        <p className="text-[13px] mb-4" style={{ color: "var(--fm-text-3)" }}>{form?.category}</p>
         <textarea
           placeholder="Deskripsi form (opsional)..."
           rows={2}
-          className="w-full text-[15px] text-gray-500 resize-none outline-none border-b border-dashed border-gray-200 pb-2 bg-transparent focus:border-[#1a4fa0] transition-colors"
+          className="w-full text-[14.5px] p-3 rounded-xl border outline-none transition-all resize-none shadow-sm focus:ring-2 focus:ring-[#3d91b2]"
+          style={{
+            backgroundColor: "var(--fm-input-bg)",
+            borderColor: "var(--fm-border)",
+            color: "var(--fm-text)"
+          }}
         />
-        <div className="mt-4 flex items-center gap-3 bg-[#eef5fb] rounded-xl px-4 py-3">
-          <span className="text-[13.5px] text-[#1a4fa0] font-medium truncate flex-1">{import.meta.env.VITE_APP_URL ?? window.location.origin}/fill/{slug}</span>
-          <button onClick={onCopyLink} className="text-[13px] text-white font-semibold px-3.5 py-2 rounded-lg hover:opacity-90 transition-all shrink-0 flex items-center gap-1.5" style={{ backgroundColor: "#1a4fa0" }}>
+        <div
+          className="mt-4 flex items-center gap-3 rounded-xl px-4 py-3 border transition-colors"
+          style={{
+            backgroundColor: "var(--fm-hover)",
+            borderColor: "var(--fm-border)"
+          }}
+        >
+          <span className="text-[13.5px] font-medium truncate flex-1" style={{ color: "var(--fm-text)" }}>
+            {import.meta.env.VITE_APP_URL ?? window.location.origin}/fill/{slug}
+          </span>
+          <button
+            onClick={onCopyLink}
+            className="text-[13px] text-white font-semibold px-3.5 py-2 rounded-lg hover:opacity-90 transition-all shrink-0 flex items-center gap-1.5 shadow-sm"
+            style={{ backgroundColor: "#1a4fa0" }}
+          >
             <Share2 size={14} /> Salin
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">{error}</div>
+        <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm">{error}</div>
       )}
 
       {questions.length === 0 && (
-        <div className="text-center py-14 bg-white/60 rounded-2xl border border-dashed border-[#d6e4ef]">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#eef5fb] flex items-center justify-center text-[#1a4fa0]">
+        <div
+          className="text-center py-14 rounded-2xl border border-dashed transition-colors"
+          style={{
+            backgroundColor: "var(--fm-card)",
+            borderColor: "var(--fm-card-border)"
+          }}
+        >
+          <div
+            className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-sm"
+            style={{ backgroundColor: "var(--fm-hover)", color: "#3d91b2" }}
+          >
             <FileQuestion size={30} />
           </div>
-          <p className="text-[#102f56] font-bold text-[16px] mb-1">Belum ada pertanyaan</p>
-          <p className="text-gray-400 text-[13.5px] mb-4">Tambahkan pertanyaan pertama untuk memulai.</p>
+          <p className="font-bold text-[16px] mb-1" style={{ color: "var(--fm-text)" }}>Belum ada pertanyaan</p>
+          <p className="text-[13.5px] mb-5" style={{ color: "var(--fm-text-2)" }}>Tambahkan pertanyaan pertama untuk memulai.</p>
           <button
             type="button"
             onClick={() => onAddQuestion()}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1a4fa0] text-white text-[13.5px] font-semibold hover:opacity-90 shadow-md cursor-pointer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-[13.5px] font-semibold hover:opacity-90 shadow-md cursor-pointer transition-all"
+            style={{ backgroundColor: "#1a4fa0" }}
           >
             <Plus size={16} strokeWidth={2.5} /> Tambah Pertanyaan Pertama
           </button>
@@ -974,6 +1072,9 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
                 totalSoal={questions.length}
                 isLocked={lockedIds.has(q.id)}
                 onToggleLock={() => toggleLock(q.id)}
+                isSelectMode={isSelectMode}
+                isSelected={selectedQIdxs.has(qIdx)}
+                onToggleSelect={() => toggleSelectQuestion(qIdx)}
               />
             </div>
           </div>
@@ -1057,22 +1158,87 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
               Tambah Halaman Identitas
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={toggleSelectMode}
+            className="group relative w-11 h-11 rounded-xl border flex items-center justify-center transition-all cursor-pointer hover:opacity-80"
+            style={{
+              backgroundColor: isSelectMode ? "#1a4fa0" : "var(--fm-hover)",
+              color: isSelectMode ? "#fff" : "#8e4de7",
+              borderColor: isSelectMode ? "#1a4fa0" : "#c4b5fd",
+            }}
+            title="Pilih beberapa soal (buat / lepas wacana)"
+          >
+            <ListChecks size={18} />
+            <span className="pointer-events-none absolute right-full mr-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg bg-gray-900 px-2.5 py-1 text-[11px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+              Pilih beberapa soal (wacana)
+            </span>
+          </button>
         </div>
       </div>
+
+      {/* Floating bar mode pilih ala WA */}
+      {isSelectMode && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl border shadow-[0_10px_35px_rgba(26,79,160,0.25)] backdrop-blur-md max-w-[calc(100vw-2rem)] flex-wrap justify-center"
+          style={{ backgroundColor: "var(--fm-card)", borderColor: "var(--fm-card-border)" }}>
+          <span className="text-[13px] font-bold mr-1" style={{ color: "var(--fm-text)" }}>
+            {selectedQIdxs.size} dipilih
+          </span>
+          <button
+            type="button"
+            onClick={toggleSelectMode}
+            className="px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition-all cursor-pointer"
+            style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)" }}
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={removeBulkGroupUI}
+            disabled={selectedQIdxs.size === 0}
+            className="px-3 py-1.5 rounded-xl text-[12px] font-semibold border transition-all cursor-pointer disabled:opacity-40"
+            style={{ borderColor: "#fca5a5", color: "#ef4444" }}
+          >
+            Lepas wacana
+          </button>
+          <button
+            type="button"
+            onClick={applyBulkGroupUI}
+            disabled={selectedQIdxs.size === 0}
+            className="px-3 py-1.5 rounded-xl text-[12px] font-bold text-white transition-all cursor-pointer disabled:opacity-40 flex items-center gap-1.5"
+            style={{ backgroundColor: "#1a4fa0" }}
+          >
+            <BookOpen size={13} /> Jadikan 1 wacana
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ── Question Card ──────────────────────────────────────────── */
-function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField, onAddOpt, onRemoveOpt, onToggleCorrect, onRemove, onDuplicate, onAddQuestionAfter, onAddPageBreakAfter, onDragHandleStart, onDragHandleEnd, onShowToast, scoreType, totalSoal, isLocked, onToggleLock }) {
+function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField, onAddOpt, onRemoveOpt, onToggleCorrect, onRemove, onDuplicate, onAddQuestionAfter, onAddPageBreakAfter, onDragHandleStart, onDragHandleEnd, onShowToast, scoreType, totalSoal, isLocked, onToggleLock, isSelectMode, isSelected, onToggleSelect }) {
   const hasOptions = ["radio", "checkbox"].includes(question.type);
   const [showPreview, setShowPreview] = useState(false);
   // Semua soal bisa diedit (tidak hanya yang baru)
   const editable = true;
   return (
-    <div className={`rounded-2xl border shadow-[0_10px_34px_rgba(23,64,120,0.08)] p-6 transition-all hover:shadow-[0_14px_40px_rgba(23,64,120,0.12)] ${
+    <div onClick={isSelectMode ? onToggleSelect : undefined}
+      className={`relative rounded-2xl border shadow-[0_10px_34px_rgba(23,64,120,0.08)] p-6 transition-all hover:shadow-[0_14px_40px_rgba(23,64,120,0.12)] ${
       question._new ? "border-[#1a4fa0]/50 ring-1 ring-[#1a4fa0]/10" : ""
-    }`} style={{ backgroundColor: "var(--fm-card)", borderColor: question._new ? undefined : "var(--fm-card-border)" }}>
+    } ${isSelectMode ? "cursor-pointer select-none" : ""} ${isSelectMode && isSelected ? "ring-2 ring-[#1a4fa0] border-[#1a4fa0]" : ""}`}
+      style={{ backgroundColor: isSelectMode && isSelected ? "rgba(26,79,160,0.07)" : "var(--fm-card)", borderColor: (isSelectMode && isSelected) || question._new ? undefined : "var(--fm-card-border)" }}>
+      {isSelectMode && (
+        <div className="absolute top-4 right-4 z-10">
+          <span className={`w-7 h-7 rounded-full border-2 grid place-items-center transition-all ${
+            isSelected ? "bg-[#1a4fa0] border-[#1a4fa0] text-white" : "border-gray-300 text-transparent"
+          }`} style={!isSelected ? { borderColor: "var(--fm-card-border)" } : undefined}>
+            <Check size={15} strokeWidth={3.5} />
+          </span>
+        </div>
+      )}
+      <div className={isSelectMode ? "pointer-events-none" : ""}>
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
           <button
@@ -1141,52 +1307,39 @@ function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField
         )}
       </div>
 
-      {/* ── Group Soal ─────────────────────────────────────────── */}
-      <div className="mb-4 ml-2">
-        <button
-          type="button"
-          onClick={() => onUpdate("showGroup", !question.showGroup)}
-          className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-400 hover:text-[#1a4fa0] transition-colors mb-2"
-        >
-          <span className={`transition-transform ${question.showGroup || question.group_id ? "rotate-90" : ""}`}>▶</span>
-          {question.group_id ? `Group #${question.group_id}` : "Tambah ke Group Wacana"}
-        </button>
-
-        {(question.showGroup || question.group_id) && (
-          <div className="space-y-2 pl-3 border-l-2 border-[#d4e5fa]">
-            <div className="flex items-center gap-2">
-              <label className="text-[11px] font-bold text-[#1a4fa0] uppercase tracking-wide shrink-0">ID Group</label>
-              <input
-                type="number"
-                min="1"
-                value={question.group_id ?? ""}
-                onChange={e => onUpdate("group_id", e.target.value ? parseInt(e.target.value) : null)}
-                placeholder="mis: 1"
-                className="w-16 border border-[#d4e5fa] rounded-lg px-2 py-1 text-[13px] outline-none focus:border-[#1a4fa0] bg-transparent"
-              />
-              <span className="text-[11px] text-gray-400">Soal dengan ID group sama = ditampilkan bersama</span>
-              {question.group_id && (
-                <button onClick={() => { onUpdate("group_id", null); onUpdate("group_text", null); }}
-                  className="inline-flex items-center gap-1 text-[11px] text-red-400 hover:text-red-600 transition ml-auto"><X size={11} /> Hapus group</button>
-              )}
-            </div>
-            {question.group_id && (
-              <div>
-                <label className="text-[11px] font-bold text-[#1a4fa0] uppercase tracking-wide block mb-1">
-                  Teks Wacana / Header Group <span className="normal-case font-normal text-gray-400">(opsional, cukup isi di soal pertama group)</span>
-                </label>
-                <textarea
-                  rows={3}
-                  value={question.group_text ?? ""}
-                  onChange={e => onUpdate("group_text", e.target.value || null)}
-                  placeholder="Tulis wacana/teks yang dipakai bersama soal-soal dalam group ini..."
-                  className="w-full border border-[#d4e5fa] rounded-xl px-3 py-2 text-[13px] outline-none focus:border-[#1a4fa0] resize-none bg-transparent"
-                />
-              </div>
-            )}
+      {/* ── Wacana (dibuat via mode pilih, bukan ketik ID) ───────── */}
+      {question.group_id ? (
+        <div className="mb-4 ml-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#eef5fb] border border-[#d4e5fa] text-[12px] font-bold text-[#1a4fa0]">
+              <BookOpen size={12} /> Wacana #{question.group_id}
+            </span>
+            <span className="text-[11px] text-gray-400">Soal dengan wacana sama = ditampilkan bersama</span>
+            <button onClick={() => { onUpdate("group_id", null); onUpdate("group_text", null); onUpdate("showGroup", false); }}
+              className="inline-flex items-center gap-1 text-[11px] text-red-400 hover:text-red-600 transition ml-auto"><X size={11} /> Lepas dari wacana</button>
           </div>
-        )}
-      </div>
+          {question.group_text != null ? (
+            <div className="pl-3 border-l-2 border-[#d4e5fa]">
+              <label className="text-[11px] font-bold text-[#1a4fa0] uppercase tracking-wide block mb-1">
+                Teks Wacana <span className="normal-case font-normal text-gray-400">(cukup isi di soal pertama wacana ini)</span>
+              </label>
+              <textarea
+                rows={3}
+                value={question.group_text ?? ""}
+                onChange={e => onUpdate("group_text", e.target.value || null)}
+                placeholder="Tulis wacana/teks yang dipakai bersama soal-soal dalam wacana ini..."
+                className="w-full border border-[#d4e5fa] rounded-xl px-3 py-2 text-[13px] outline-none focus:border-[#1a4fa0] resize-none bg-transparent"
+              />
+            </div>
+          ) : (
+            <p className="text-[11px] text-gray-400 ml-1">
+              Teks wacana diisi di soal pertama wacana ini.{" "}
+              <button onClick={() => { onUpdate("group_text", ""); onUpdate("showGroup", true); }}
+                className="text-[#1a4fa0] font-semibold hover:underline">Pindahkan / isi di sini</button>
+            </p>
+          )}
+        </div>
+      ) : null}
 
       {hasOptions && (
         <div className="space-y-3 mb-3 ml-2">
@@ -1403,7 +1556,7 @@ function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField
               onClick={onAddQuestionAfter}
               className="h-10 px-3 rounded-xl flex items-center gap-1.5 text-[12px] font-semibold text-[#1a4fa0] hover:bg-[#eef5fb] border border-dashed border-[#c7d8e8] hover:border-[#1a4fa0] transition-all cursor-pointer"
             >
-              <Plus size={14} strokeWidth={2.5} /> + Soal Baru
+              <Plus size={14} strokeWidth={2.5} /> Soal Baru
             </button>
           )}
           {/* Tombol sisipkan Page Break */}
@@ -1444,6 +1597,7 @@ function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField
             <input type="checkbox" checked={question.required} onChange={(e) => onUpdate("required", e.target.checked)} className="accent-[#1a4fa0]" style={{ width: 18, height: 18 }} />
           </label>
         </div>
+      </div>
       </div>
     </div>
   );
