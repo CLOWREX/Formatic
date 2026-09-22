@@ -17,6 +17,7 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true
 }))
+app.set('trust proxy', 1)
 
 function jwtToken(payload) {
     return jwt.sign(payload, process.env.SECRET, { expiresIn: '1d' })
