@@ -190,7 +190,7 @@ export default function Register() {
               Form<span style={{ color: COLORS.cyan }}>Matic</span>
             </h1>
           </div>
-          <div className="relative w-full bg-white rounded-3xl shadow-2xl px-8 py-10">
+          <div className="relative w-full bg-white rounded-3xl shadow-2xl px-8 py-10" style={{ backgroundColor: "white" }}>
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold" style={{ color: COLORS.navy }}>
                 Create <span style={{ color: COLORS.cyan }}>Account</span>
@@ -219,7 +219,7 @@ export default function Register() {
                   onChange={(e) => setUsername(e.target.value)}
                   required
                   className="w-full rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-cyan-400 transition"
-                  style={{ border: `1px solid ${COLORS.border}` }}
+                  style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "white", color: COLORS.navy }}
                 />
               </div>
 
@@ -237,7 +237,7 @@ export default function Register() {
                     required
                     minLength={6}
                     className="w-full rounded-lg pl-4 pr-10 py-2.5 text-sm outline-none focus:ring-2 focus:ring-cyan-400 transition"
-                    style={{ border: `1px solid ${COLORS.border}` }}
+                    style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "white", color: COLORS.navy }}
                   />
                   <button
                     type="button"
@@ -265,7 +265,7 @@ export default function Register() {
                     required
                     minLength={6}
                     className="w-full rounded-lg pl-4 pr-10 py-2.5 text-sm outline-none focus:ring-2 focus:ring-cyan-400 transition"
-                    style={{ border: `1px solid ${COLORS.border}` }}
+                    style={{ border: `1px solid ${COLORS.border}`, backgroundColor: "white", color: COLORS.navy }}
                   />
                   <button
                     type="button"
