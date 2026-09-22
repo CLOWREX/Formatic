@@ -17,7 +17,8 @@ function getUsername() {
 /* ── Skeleton card ───────────────────────────────────────────── */
 function SkeletonCard() {
   return (
-    <div className="rounded-2xl bg-white border border-[#dceaf2] overflow-hidden min-h-[310px] flex flex-col animate-pulse">
+    <div className="rounded-2xl border overflow-hidden min-h-[310px] flex flex-col animate-pulse"
+      style={{ backgroundColor: "var(--fm-card)", borderColor: "var(--fm-card-border)" }}>
       <div className="w-full h-[165px] bg-[#e8f0fb]" />
       <div className="px-[17px] py-[15px] flex-1 flex flex-col gap-3">
         <div className="h-2 w-[30%] rounded bg-[#e8f0fb]" />
@@ -278,10 +279,10 @@ export default function MyForms() {
           style={{ background: "linear-gradient(135deg, var(--fm-bg) 0%, var(--fm-bg-2) 55%, var(--fm-bg-3) 100%)", color: "var(--fm-text)" }}
         >
           {/* ── Header ─────────────────────────────── */}
-          <header className="flex items-center justify-between gap-4 mb-[25px] max-[800px]:flex-col max-[800px]:items-start">
+          <header className="flex items-center justify-between gap-4 mb-[25px] max-[800px]:flex-col max-[800px]:items-start pt-[52px] md:pt-0">
             <div>
-              <h1 className="text-[28px] font-extrabold tracking-tight text-[#102f56]">My Forms</h1>
-              <p className="mt-1.5 text-[13.5px] text-[#7290a9]">Halo, {username}! Kelola semua form yang kamu buat.</p>
+              <h1 className="text-[28px] font-extrabold tracking-tight" style={{ color: "var(--fm-text)" }}>My Forms</h1>
+              <p className="mt-1.5 text-[13.5px]" style={{ color: "var(--fm-text-2)" }}>Halo, {username}! Kelola semua form yang kamu buat.</p>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <button
@@ -302,14 +303,16 @@ export default function MyForms() {
           </header>
 
           {/* ── Search ─────────────────────────────── */}
-          <div className="flex items-center h-11 px-4 rounded-xl bg-white/90 border border-[#d9e8f1] mb-4 focus-within:border-[#3d91b2] focus-within:ring-4 focus-within:ring-[#3d91b2]/10 transition-all">
+          <div className="flex items-center h-11 px-4 rounded-xl border mb-4 focus-within:ring-4 focus-within:ring-[#3d91b2]/10 transition-all"
+            style={{ backgroundColor: "var(--fm-card)", borderColor: "var(--fm-card-border)" }}>
             <Search size={19} className="text-[#3d91b2] mr-2.5 shrink-0" />
             <input
               type="text"
               placeholder="Search your forms..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="flex-1 bg-transparent outline-none text-[14px] text-[#183056] placeholder:text-[#9bb0bf]"
+              className="flex-1 bg-transparent outline-none text-[14px] placeholder:text-[#9bb0bf]"
+              style={{ color: "var(--fm-text)" }}
             />
           </div>
 
@@ -334,8 +337,8 @@ export default function MyForms() {
           {/* ── Section header ─────────────────────── */}
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-[18px] font-bold text-[#183056]">My Forms</h2>
-              <span className="block mt-1 text-[12px] text-[#87a1b5]">{loading ? "..." : `${filtered.length} forms`}</span>
+              <h2 className="text-[18px] font-bold" style={{ color: "var(--fm-text)" }}>My Forms</h2>
+              <span className="block mt-1 text-[12px]" style={{ color: "var(--fm-text-2)" }}>{loading ? "..." : `${filtered.length} forms`}</span>
             </div>
           </div>
 
@@ -411,9 +414,14 @@ export default function MyForms() {
 
           {/* ── Empty state ─────────────────────────── */}
           {!loading && filtered.length === 0 && (
-            <div className="text-center py-20 text-[#7892a6]">
-              <div className="w-[55px] h-[55px] mx-auto mb-4 rounded-2xl bg-[#e4f2f8] grid place-items-center"><ClipboardList size={25} className="text-[#3d91b2]" /></div>
-              <h3 className="text-[16px] font-bold text-[#183056] mb-1">{search ? "Form tidak ditemukan" : "Belum ada form"}</h3>
+            <div className="text-center py-20" style={{ color: "var(--fm-text-2)" }}>
+              <div className="w-[55px] h-[55px] mx-auto mb-4 rounded-2xl grid place-items-center"
+                style={{ backgroundColor: "var(--fm-hover)" }}>
+                <ClipboardList size={25} className="text-[#3d91b2]" />
+              </div>
+              <h3 className="text-[16px] font-bold mb-1" style={{ color: "var(--fm-text)" }}>
+                {search ? "Form tidak ditemukan" : "Belum ada form"}
+              </h3>
               <p className="text-[12.5px]">
                 {search
                   ? "Coba kata kunci lain atau pilih kategori berbeda."

@@ -1953,12 +1953,13 @@ function ViewAllBtn({ q, total, formSlug }) {
     finally { setLoading(false); }
   }
 
-  // Extract answers for this soal from detail
+  // Extract answers for this soal from detail — detail = array of pages, each page has soal[]
   const answers = detail
-    ? detail
+    ? (detail ?? [])
+        .flatMap(pg => pg.soal ?? pg)
         .filter(d => d.id === q.id)
         .flatMap(d => (d.responses ?? []).map(r => r.answer))
-        .filter(Boolean)
+        .filter(a => a !== null && a !== undefined && a !== "")
     : [];
 
   return (
