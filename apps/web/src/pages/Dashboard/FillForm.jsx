@@ -323,7 +323,7 @@ export default function FillForm() {
     const empty = (allSoal ?? []).find((s) => isRequired(s) && !hasAnswer(s));
     if (empty) {
       setErrorSoalId(empty.id);
-      const clean = (empty.question || "Soal").replace(/<[^>]*>/g, "").trim();
+      const clean = (empty.question || "Soal").replace(/<[^>]*>/g, "").replace(/\$[^$]*\$/g, "[rumus]").replace(/\\\([^)]*\\\)/g, "[rumus]").trim().slice(0, 60);
       setSubmitError(`Pertanyaan "${clean}" belum dijawab. Mohon lengkapi semua soal wajib sebelum mengirim.`);
       
       // Jika mode per-halaman/quiz, pindahkan currentIdx ke halaman yang berisi soal tersebut
@@ -700,7 +700,7 @@ export default function FillForm() {
       const isReq = (s) => reqMap[s.id] !== undefined ? reqMap[s.id] : true;
       const unanswered = (currPage.soal ?? []).find(s => isReq(s) && !hasAnswer(s));
       if (unanswered) {
-        const clean = (unanswered.question || "Wajib").replace(/<[^>]*>/g, "").trim();
+        const clean = (unanswered.question || "Wajib").replace(/<[^>]*>/g, "").replace(/\$[^$]*\$/g, "[rumus]").replace(/\\\([^)]*\\\)/g, "[rumus]").trim().slice(0, 60);
         setSubmitError(`Pertanyaan "${clean}" belum dijawab.`);
         return;
       }

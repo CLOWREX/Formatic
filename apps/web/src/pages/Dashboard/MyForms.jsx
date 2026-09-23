@@ -390,7 +390,7 @@ export default function MyForms() {
                     onClick={() => navigate(`/form/${form.slug ?? form.form_slug}`)}
                   >
                     {/* Image */}
-                    <div className="relative w-full overflow-hidden bg-[#dcecf4]" style={{ aspectRatio: "16/9" }}>
+                    <div className="relative w-full overflow-hidden" style={{ aspectRatio: "16/9", backgroundColor: "var(--fm-hover)" }}>
                       {banner ? (
                         <img src={`${FORM_API_URL}${banner}`} alt={form.form_title}
                           className="w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-300"
