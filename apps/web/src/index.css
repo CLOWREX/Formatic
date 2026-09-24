@@ -833,3 +833,24 @@ code.inline-code {
 .animate-scaleIn {
   animation: scaleIn 150ms ease-out;
 }
+
+/* ── Auth pages (Login / Register / Forgot) — dark mode fixes ── */
+/* Card form: biar kontras dengan background gelap, kasih border + shadow */
+[data-theme="dark"] .auth-card {
+  border: 1px solid #2a3a54;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+}
+
+/* Mockup illustration di panel kiri: ikut gelap biar nggak tabrakan */
+[data-theme="dark"] .auth-mock {
+  border: 1px solid #2a3a54;
+}
+[data-theme="dark"] .auth-mock .bg-slate-100 {
+  background-color: #24334d !important;
+}
+[data-theme="dark"] .auth-mock .bg-slate-200 {
+  background-color: #2a3a54 !important;
+}
+[data-theme="dark"] .auth-mock .auth-mock-letter {
+  color: #a8bdd8 !important;
+}
