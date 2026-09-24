@@ -212,7 +212,16 @@ export default function FormEditor() {
 
   function addPageBreakAfter(idx) {
     setQuestions((prev) => {
-      if (idx < 0 || idx >= prev.length - 1) return prev;
+      if (idx < 0 || idx >= prev.length) return prev;
+      if (idx === prev.length - 1) {
+        // Jika soal terakhir, buat soal baru langsung di page berikutnya
+        const curPage = prev[idx]?.page || 1;
+        return [...prev, {
+          _new: true, question: "", type: "radio", required: true,
+          page: curPage + 1,
+          options: [{ value: "" }, { value: "" }],
+        }];
+      }
       return prev.map((q, i) => {
         if (i <= idx) return q;
         return { ...q, page: (q.page || 1) + 1 };
@@ -1165,7 +1174,7 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
                 onRemove={() => onRemoveQ(qIdx)}
                 onDuplicate={() => onDuplicateQ(qIdx)}
                 onAddQuestionAfter={() => onAddQuestionAfter(qIdx)}
-                onAddPageBreakAfter={(qIdx < questions.length - 1 && (q.page || 1) > 1 && ((questions[qIdx + 1]?.page || 1) === (q.page || 1))) ? () => onAddPageBreakAfter(qIdx) : undefined}
+                onAddPageBreakAfter={(q.page || 1) > 1 ? () => onAddPageBreakAfter(qIdx) : undefined}
                 onDragHandleStart={() => setDragFrom(qIdx)}
                 onDragHandleEnd={() => { setDragFrom(null); setDragOver(null); }}
                 onShowToast={onShowToast}
@@ -1207,16 +1216,28 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
         <ImportDocxButton slug={slug} onImported={onImported} onImportedSilent={onImportedSilent} onImportGuard={onImportGuard} hasUnsaved={hasUnsaved} onSaveFirst={onSaveFirst} />
       </div>
 
-      {/* Tombol template identitas */}
-      <button
-        onClick={onAddIdentityPage}
-        className="w-full py-4 rounded-2xl border-2 border-dashed text-[14px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
-        style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = "#10b981"; e.currentTarget.style.color = "#10b981"; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--fm-card-border)"; e.currentTarget.style.color = "var(--fm-text-2)"; }}
-      >
-        <IdCard size={18} /> Tambah Halaman Identitas (Nama, Kelas, dst.)
-      </button>
+      {/* Tombol template identitas & Tambah Halaman Baru */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <button
+          onClick={onAddIdentityPage}
+          className="w-full py-4 rounded-2xl border-2 border-dashed text-[14px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
+          style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#10b981"; e.currentTarget.style.color = "#10b981"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--fm-card-border)"; e.currentTarget.style.color = "var(--fm-text-2)"; }}
+        >
+          <IdCard size={18} /> Tambah Halaman Identitas (Nama, Kelas, dst.)
+        </button>
+
+        <button
+          onClick={onAddNewPage}
+          className="w-full py-4 rounded-2xl border-2 border-dashed text-[14px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
+          style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#1a4fa0"; e.currentTarget.style.color = "#1a4fa0"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--fm-card-border)"; e.currentTarget.style.color = "var(--fm-text-2)"; }}
+        >
+          <Layers size={18} /> Tambah Halaman Baru (Section / Page Break)
+        </button>
+      </div>
 
       {/* Floating Quick Action Dock */}
       <div className="fixed right-4 md:right-8 bottom-8 z-40 flex flex-col gap-2.5 items-end">
@@ -2004,8 +2025,13 @@ function ResponsesTab({ formId, form }) {
 
             {/* PER-QUESTION CARDS */}
             {questions.map((q, qi) => {
-              const opts    = q.options ?? [];
-              const answered = opts.reduce((s, o) => s + (o.total_answer ?? 0), 0);
+              const opts = q.options ?? [];
+              const textAnswers = q.text_answers ?? [];
+              const answered = (q.type === "radio" || q.type === "checkbox")
+                ? opts.reduce((s, o) => s + (o.total_answer ?? 0), 0)
+                : (q.type === "text" && textAnswers.length > 0)
+                ? textAnswers.length
+                : total;
               const maxCount = Math.max(...opts.map(o => o.total_answer ?? 0), 1);
 
               return (
@@ -2035,7 +2061,7 @@ function ResponsesTab({ formId, form }) {
                         return (
                           <div key={oi} className="flex items-center gap-3">
                             <span className="w-[30%] text-[12px] text-[#364a6e] font-medium truncate shrink-0">
-                              {opt.value ?? opt.option_value ?? `Opsi ${oi+1}`}
+                              <RichTextDisplay content={opt.value ?? opt.option_value ?? `Opsi ${oi+1}`} />
                             </span>
                             <div className="flex-1 flex items-center gap-2">
                               <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--fm-hover)" }}>
@@ -2054,7 +2080,14 @@ function ResponsesTab({ formId, form }) {
                   {q.type === "text" && (
                     <div className="px-5 py-4">
                       <p className="text-[12px]" style={{ color: "var(--fm-text-2)" }}>
-                        {answered > 0 ? `${answered} jawaban teks masuk — klik "View All" untuk lihat.` : "Belum ada jawaban teks."}
+                        {total > 0 ? `Jawaban teks responden — klik "View All" untuk melihat seluruh jawaban.` : "Belum ada jawaban teks."}
+                      </p>
+                    </div>
+                  )}
+                  {q.type === "file" && (
+                    <div className="px-5 py-4">
+                      <p className="text-[12px]" style={{ color: "var(--fm-text-2)" }}>
+                        {total > 0 ? `File lampiran jawaban responden — klik "View All" atau cek tab "Jawaban" / "Responden" untuk mengunduh.` : "Belum ada file diunggah."}
                       </p>
                     </div>
                   )}
@@ -2105,15 +2138,33 @@ function ResponsesTab({ formId, form }) {
                               {soalAll.map((s, i) => {
                                 const raw = data.answers[s.id];
                                 let display = "-";
+                                let isFileUrl = false;
                                 if (raw != null) {
                                   if (typeof raw === "number") {
                                     const opt = (s.options ?? []).find(o => o.id === raw);
                                     display = opt?.value ?? String(raw);
-                                  } else display = String(raw);
+                                  } else {
+                                    display = String(raw);
+                                    if (typeof raw === "string" && (raw.startsWith("/uploads/") || raw.includes("/uploads/answers/"))) {
+                                      isFileUrl = true;
+                                    }
+                                  }
                                 }
                                 return (
                                   <td key={s.id ?? i} className="px-3 py-2 border border-[#e7edf6] max-w-[200px]" style={{ color: "var(--fm-text)" }}>
-                                    <div className="truncate">{display}</div>
+                                    {isFileUrl ? (
+                                      <a
+                                        href={`${FORM_API_URL}${raw.startsWith('/') ? raw : '/' + raw}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 text-[#075ee0] hover:underline font-medium"
+                                      >
+                                        <FileDown size={14} className="shrink-0" />
+                                        <span className="truncate">{raw.split("/").pop()}</span>
+                                      </a>
+                                    ) : (
+                                      <div className="truncate"><RichTextDisplay content={display} /></div>
+                                    )}
                                   </td>
                                 );
                               })}
@@ -2161,11 +2212,17 @@ function ResponsesTab({ formId, form }) {
                             {soalAll.map((s, si) => {
                               const raw = row.answers[s.id];
                               let display = "-";
+                              let isFileUrl = false;
                               if (raw != null) {
                                 if (typeof raw === "number") {
                                   const opt = (s.options ?? []).find(o => o.id === raw);
                                   display = opt?.value ?? String(raw);
-                                } else display = String(raw);
+                                } else {
+                                  display = String(raw);
+                                  if (typeof raw === "string" && (raw.startsWith("/uploads/") || raw.includes("/uploads/answers/"))) {
+                                    isFileUrl = true;
+                                  }
+                                }
                               }
                               return (
                                 <div key={s.id ?? si} className="flex items-start gap-2 text-[12px]">
@@ -2173,7 +2230,21 @@ function ResponsesTab({ formId, form }) {
                                   <span className="font-medium shrink-0 max-w-[40%] truncate" style={{ color: "var(--fm-text-2)" }}>
                                     {(s.question ?? "").replace(/<[^>]*>/g, "").slice(0, 35)}:
                                   </span>
-                                  <span className="flex-1" style={{ color: "var(--fm-text)" }}>{display}</span>
+                                  <div className="flex-1 min-w-0">
+                                    {isFileUrl ? (
+                                      <a
+                                        href={`${FORM_API_URL}${raw.startsWith('/') ? raw : '/' + raw}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 text-[#075ee0] hover:underline font-medium"
+                                      >
+                                        <FileDown size={14} className="shrink-0" />
+                                        <span className="truncate">{raw.split("/").pop()}</span>
+                                      </a>
+                                    ) : (
+                                      <div style={{ color: "var(--fm-text)" }}><RichTextDisplay content={display} /></div>
+                                    )}
+                                  </div>
                                 </div>
                               );
                             })}
@@ -2268,12 +2339,27 @@ function ViewAllBtn({ q, total, formSlug }) {
 
               {!loading && answers.length > 0 && (
                 <div className="space-y-2">
-                  {answers.map((ans, i) => (
-                    <div key={i} className="px-4 py-3 rounded-xl text-[13px]"
-                      style={{ backgroundColor: "var(--fm-hover)", border: "1px solid var(--fm-card-border)", color: "var(--fm-text)" }}>
-                      {typeof ans === "string" ? ans : JSON.stringify(ans)}
-                    </div>
-                  ))}
+                  {answers.map((ans, i) => {
+                    const isFile = typeof ans === "string" && (ans.startsWith("/uploads/") || ans.includes("/uploads/answers/"));
+                    return (
+                      <div key={i} className="px-4 py-3 rounded-xl text-[13px]"
+                        style={{ backgroundColor: "var(--fm-hover)", border: "1px solid var(--fm-card-border)", color: "var(--fm-text)" }}>
+                        {isFile ? (
+                          <a
+                            href={`${FORM_API_URL}${ans.startsWith('/') ? ans : '/' + ans}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 text-[#075ee0] hover:underline font-semibold"
+                          >
+                            <FileDown size={16} />
+                            <span>Unduh File: {ans.split("/").pop()}</span>
+                          </a>
+                        ) : (
+                          typeof ans === "string" ? ans : JSON.stringify(ans)
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

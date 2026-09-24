@@ -421,8 +421,6 @@ export default function MyForms() {
                       <p className="mb-3 text-[12.5px] text-[#7892a6] line-clamp-2">{cat || "—"}</p>
                       <div className="flex items-center gap-2 text-[11px] text-[#3d91b2] whitespace-nowrap mb-3">
                         <span>▧ — Questions</span>
-                        <span>•</span>
-                        <span>0 Responses</span>
                       </div>
                       <div className="mt-auto pt-3.5 border-t border-[#edf3f7] flex items-center justify-between text-[10px] text-[#9aafbd]">
                         <span className="font-semibold" style={{ color: status === "public" ? "#22a06b" : "#7892a6" }}>
