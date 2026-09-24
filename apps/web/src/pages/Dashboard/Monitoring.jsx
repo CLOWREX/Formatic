@@ -26,15 +26,15 @@ function formatTime(ts) {
 
 function StatusBadge({ status }) {
   const map = {
-    progress:  { label: "Sedang mengerjakan", cls: "bg-yellow-100 text-yellow-700 border-yellow-200" },
-    completed: { label: "Selesai",             cls: "bg-green-100  text-green-700  border-green-200"  },
-    submitted: { label: "Selesai",             cls: "bg-green-100  text-green-700  border-green-200"  },
-    reset:     { label: "Direset",             cls: "bg-gray-100   text-gray-500   border-gray-200"   },
+    progress:  { label: "Sedang mengerjakan", style: { backgroundColor: "rgba(245,158,11,0.15)", color: "#d97706", borderColor: "rgba(245,158,11,0.35)" } },
+    completed: { label: "Selesai",             style: { backgroundColor: "rgba(16,185,129,0.15)",  color: "#10b981", borderColor: "rgba(16,185,129,0.35)"  } },
+    submitted: { label: "Selesai",             style: { backgroundColor: "rgba(16,185,129,0.15)",  color: "#10b981", borderColor: "rgba(16,185,129,0.35)"  } },
+    reset:     { label: "Direset",             style: { backgroundColor: "rgba(100,116,139,0.12)", color: "#94a3b8", borderColor: "rgba(100,116,139,0.25)" } },
   };
-  const { label, cls } = map[status] ?? { label: status, cls: "bg-gray-100 text-gray-500 border-gray-200" };
+  const { label, style } = map[status] ?? { label: status, style: { backgroundColor: "rgba(100,116,139,0.12)", color: "#94a3b8", borderColor: "rgba(100,116,139,0.25)" } };
   return (
-    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${cls}`}>
-      {status === "progress" && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse inline-block" />}
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border" style={style}>
+      {status === "progress" && <span className="w-1.5 h-1.5 rounded-full animate-pulse inline-block" style={{ backgroundColor: "#d97706" }} />}
       {(status === "completed" || status === "submitted") && <CheckCircle2 size={10} />}
       {label}
     </span>
@@ -390,14 +390,14 @@ export default function Monitoring() {
 
                         {/* Mulai */}
                         <td className="px-4 py-3.5 tabular-nums" style={{ color: "var(--fm-text-2)" }}>
-                          {formatTime(p.submitted_at)}
+                          {formatTime(p.start_at)}
                         </td>
 
                         {/* Durasi */}
                         <td className="px-4 py-3.5 tabular-nums" style={{ color: "var(--fm-text-2)" }}>
                           {p.status === "completed" || p.status === "submitted"
                             ? <span className="text-green-600 font-medium">Selesai</span>
-                            : <span className="text-yellow-600 font-medium">{formatDuration(p.submitted_at)}</span>
+                            : <span className="text-yellow-600 font-medium">{formatDuration(p.start_at)}</span>
                           }
                         </td>
 
