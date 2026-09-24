@@ -354,14 +354,16 @@ export default function FillForm() {
         const jawaban = { soal_id: soal.id };
 
         if (soal.type === "radio") {
-          jawaban.soal_option_id = a;
+          jawaban.soal_option_id = a ?? null;
         } else if (soal.type === "checkbox") {
           jawaban.soal_option_id = Array.isArray(a) ? a : null;
         } else if (soal.type === "text") {
-          jawaban.answer_text = a;
-        } else if (soal.type === "file" && a?.file) {
-          jawaban.file_name = a.file.name;
-          fd.append("files", a.file);
+          jawaban.answer_text = typeof a === "string" ? a : (a ?? "");
+        } else if (soal.type === "file") {
+          if (a?.file) {
+            jawaban.file_name = a.file.name;
+            fd.append("files", a.file);
+          }
         }
         payload.push({ jawaban });
       }
