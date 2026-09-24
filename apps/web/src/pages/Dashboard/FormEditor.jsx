@@ -181,7 +181,20 @@ export default function FormEditor() {
   function addQuestionAfter(idx) {
     setQuestions((prev) => {
       const targetQ = prev[idx];
-      const p = targetQ?.page || 1;
+      const targetPage = targetQ?.page || 1;
+      const identityQuestions = ["Nama Lengkap", "Kelas", "Nomor Absen"];
+      const isIdentityQ = identityQuestions.includes(
+        (targetQ?.question ?? "").replace(/<[^>]*>/g, "").trim()
+      );
+      // Kalau soal di page 1 dan semua soal di page 1 adalah identitas → soal baru masuk page 2
+      const soalOnPage1 = prev.filter(q => (q.page || 1) === 1);
+      const allPage1IsIdentity = soalOnPage1.every(q =>
+        identityQuestions.includes((q.question ?? "").replace(/<[^>]*>/g, "").trim())
+      );
+      const maxPage = Math.max(...prev.map(q => q.page || 1));
+      const p = (targetPage === 1 && isIdentityQ && allPage1IsIdentity)
+        ? (maxPage === 1 ? 2 : maxPage)
+        : targetPage;
       const newQ = {
         _new: true,
         question: "",
@@ -248,7 +261,7 @@ export default function FormEditor() {
     const templates = [
       { question: "Nama Lengkap", type: "text", required: true },
       { question: "Kelas", type: "text", required: true },
-      { question: "Nomor Absen", type: "text", required: false },
+      { question: "Nomor Absen", type: "text", required: true },
     ];
     setQuestions(prev => {
       // Cek apakah sudah ada soal identitas (soal text di posisi awal)
@@ -888,10 +901,22 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
   const [dragFrom, setDragFrom] = useState(null);
   const [dragOver, setDragOver] = useState(null);
   const [showGuide, setShowGuide] = useState(false);
-  // Baca scoreType dari localStorage supaya badge score realtime ikut berubah
-  const [scoreType, setScoreType] = useState(() =>
-    localStorage.getItem(`score_type_${form?.slug ?? slug}`) ?? "none"
-  );
+  // Baca scoreConfig dari localStorage supaya badge score realtime ikut berubah
+  const scoreConfigKey = `score_config_${form?.slug ?? slug}`;
+  const [scoreConfig, setScoreConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem(scoreConfigKey);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    const legacyType = localStorage.getItem(`score_type_${form?.slug ?? slug}`) ?? "none";
+    return { _global: { type: legacyType, geniusTotal: 100 } };
+  });
+  function getPageScoreType(pageNum) {
+    return (scoreConfig[pageNum] ?? scoreConfig["_global"] ?? { type: "none" }).type;
+  }
+  function getPageGeniusTotal(pageNum) {
+    return (scoreConfig[pageNum] ?? scoreConfig["_global"] ?? { geniusTotal: 100 }).geniusTotal ?? 100;
+  }
 
   // --- Bulk Select Mode (pilih banyak soal ala WA buat grup soal) ---
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -965,15 +990,22 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
   }, []);
   // ---------------------------------------------------------------
 
-  // Sync saat form berubah
+  // Sync saat form/slug berubah
   useEffect(() => {
-    const key = `score_type_${form?.slug ?? slug}`;
-    const stored = localStorage.getItem(key) ?? "none";
-    setScoreType(stored);
-    const handler = (e) => { if (e.key === key) setScoreType(e.newValue ?? "none"); };
+    const key = scoreConfigKey;
+    const loadConfig = () => {
+      try {
+        const saved = localStorage.getItem(key);
+        if (saved) { setScoreConfig(JSON.parse(saved)); return; }
+      } catch {}
+      const legacyType = localStorage.getItem(`score_type_${form?.slug ?? slug}`) ?? "none";
+      setScoreConfig({ _global: { type: legacyType, geniusTotal: 100 } });
+    };
+    loadConfig();
+    const handler = (e) => { if (e.key === key) loadConfig(); };
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
-  }, [form?.slug, slug]);
+  }, [form?.slug, slug, scoreConfigKey]);
 
   const [exportingDocx, setExportingDocx] = useState(false);
   async function onExportDocx() {
@@ -1078,34 +1110,121 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
         </div>
       )}
 
-      {questions.map((q, qIdx) => {
-        const currPage = q.page || 1;
-        const prevQ = qIdx > 0 ? questions[qIdx - 1] : null;
-        const prevPage = prevQ ? (prevQ.page || 1) : null;
-        const isNewPage = qIdx === 0 || currPage !== prevPage;
-        const questionsOnThisPage = questions.filter(x => (x.page || 1) === currPage).length;
+      {/* Score config helper — didefinisikan sekali di luar map */}
+      {(() => {
+        const isQuiz = (form?.primary_kategori ?? form?.category)?.toLowerCase() === "ujian";
+        function updateSectionScore(pageNum, patch) {
+          const current = scoreConfig[pageNum] ?? scoreConfig["_global"] ?? { type: "none", geniusTotal: 100 };
+          const merged = { ...current, ...patch };
+          const next = { ...scoreConfig, [pageNum]: merged };
+          setScoreConfig(next);
+          try { localStorage.setItem(scoreConfigKey, JSON.stringify(next)); } catch {}
+          window.dispatchEvent(new StorageEvent("storage", { key: scoreConfigKey, newValue: JSON.stringify(next) }));
+
+          // Auto-apply genius score ke state questions supaya ikut tersimpan saat klik Simpan utama
+          if (merged.type === "genius") {
+            const total = Number(merged.geniusTotal) || 100;
+            onUpdateQ && questions.forEach((sq, i) => {
+              if ((sq.page || 1) === pageNum) {
+                const soalOnPage = questions.filter(x => (x.page || 1) === pageNum).length;
+                const perSoal = parseFloat((total / soalOnPage).toFixed(2));
+                onUpdateQ(i, "score", perSoal);
+              }
+            });
+          } else if (merged.type === "none") {
+            // Reset score ke null untuk soal di section ini
+            onUpdateQ && questions.forEach((sq, i) => {
+              if ((sq.page || 1) === pageNum) onUpdateQ(i, "score", null);
+            });
+          }
+        }
+        return questions.map((q, qIdx) => {
+          const currPage = q.page || 1;
+          const prevQ = qIdx > 0 ? questions[qIdx - 1] : null;
+          const prevPage = prevQ ? (prevQ.page || 1) : null;
+          const isNewPage = qIdx === 0 || currPage !== prevPage;
+          const questionsOnThisPage = questions.filter(x => (x.page || 1) === currPage).length;
+
+          // Score config helpers untuk section ini
+          const pageCfg = scoreConfig[currPage] ?? scoreConfig["_global"] ?? { type: "none", geniusTotal: 100 };
+          const pageScoreType = pageCfg.type ?? "none";
+          const pageGeniusTotal = pageCfg.geniusTotal ?? 100;
+          const perSoalGenius = questionsOnThisPage > 0 ? (Number(pageGeniusTotal) / questionsOnThisPage).toFixed(2) : "—";
+        // Score mode row — khusus mode ujian
+        const ScoreModeRow = isQuiz ? (
+          <div className="mt-3 pt-3 border-t border-[#e5eef7] flex flex-wrap items-center gap-3">
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide shrink-0">Mode Nilai Section:</span>
+            <div className="flex items-center gap-3 flex-wrap">
+              {[
+                { val: "none",   label: "Tanpa Score" },
+                { val: "genius", label: "Genius Score" },
+                { val: "manual", label: "Manual" },
+              ].map(({ val, label }) => (
+                <label key={val} className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input
+                    type="radio"
+                    name={`score_mode_page_${currPage}`}
+                    checked={pageScoreType === val}
+                    onChange={() => updateSectionScore(currPage, { type: val })}
+                    className="accent-[#1a4fa0]"
+                  />
+                  <span className="text-[12px] font-semibold text-gray-600">{label}</span>
+                </label>
+              ))}
+              {pageScoreType === "genius" && (
+                <>
+                  <input
+                    type="number" min="1"
+                    value={pageGeniusTotal}
+                    onChange={e => updateSectionScore(currPage, { geniusTotal: e.target.value })}
+                    className="w-16 h-7 border border-indigo-200 rounded-lg px-2 text-[12px] font-bold text-indigo-700 bg-indigo-50 outline-none focus:border-indigo-400 text-center"
+                  />
+                  <span className="text-[11px] text-indigo-500 font-medium">({perSoalGenius} pts/soal)</span>
+                </>
+              )}
+            </div>
+            <span className="text-[11px] text-gray-400 ml-auto">
+              {pageScoreType === "none" && "Nilai dimatikan"}
+              {pageScoreType === "genius" && `Total ${pageGeniusTotal} dibagi rata`}
+              {pageScoreType === "manual" && "Nilai diisi manual per soal"}
+            </span>
+          </div>
+        ) : null;
 
         return (
           <div key={q.id ?? `new-${qIdx}`} className="space-y-4">
             {isNewPage && (
               <div className="pt-2">
                 {currPage === 1 ? (
-                  <div className="rounded-2xl border p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs"
+                  <div className="rounded-2xl border p-4 flex flex-col gap-0 shadow-2xs"
                     style={{ backgroundColor: "var(--fm-card)", borderColor: "var(--fm-card-border)" }}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-[#1a4fa0] text-white flex items-center justify-center font-black text-[14px] shadow-2xs">
-                        1
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-[14.5px] font-extrabold text-[#102f56]">Halaman 1</h3>
-                          <span className="px-2 py-0.5 rounded-md bg-white border border-[#d4e5fa] text-[11px] font-bold text-[#1a4fa0]">
-                            {questionsOnThisPage} Pertanyaan
-                          </span>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-[#1a4fa0] text-white flex items-center justify-center font-black text-[14px] shadow-2xs">
+                          1
                         </div>
-                        <p className="text-[12px] text-gray-400">Halaman awal formulir / identitas</p>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-[14.5px] font-extrabold text-[#102f56]">Halaman 1</h3>
+                            <span className="px-2 py-0.5 rounded-md bg-white border border-[#d4e5fa] text-[11px] font-bold text-[#1a4fa0]">
+                              {questionsOnThisPage} Pertanyaan
+                            </span>
+                          </div>
+                          <p className="text-[12px] text-gray-400">Halaman awal formulir / identitas</p>
+                        </div>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const lastIdx = questions.map((x,i)=>({x,i})).filter(({x})=>(x.page||1)===currPage).pop()?.i ?? qIdx;
+                          onAddQuestionAfter(lastIdx);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-[#1a4fa0] text-white text-[12px] font-semibold flex items-center gap-1.5 hover:opacity-90 transition shadow-2xs"
+                      >
+                        <Plus size={13} strokeWidth={2.5} /> Soal
+                      </button>
                     </div>
+                    {ScoreModeRow}
                   </div>
                 ) : (
                   <div className="relative pt-3 pb-1">
@@ -1117,35 +1236,45 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
                       <div className="flex-1 h-[2px] bg-gradient-to-l from-transparent via-[#1a4fa0]/20 to-[#1a4fa0]/40 rounded-full" />
                     </div>
 
-                    <div className="rounded-2xl border p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3"
+                    <div className="rounded-2xl border p-4 shadow-2xs flex flex-col gap-0"
                       style={{ backgroundColor: "var(--fm-card)", borderColor: "var(--fm-card-border)" }}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-white text-[#1a4fa0] flex items-center justify-center font-black text-[14px] shadow-2xs border border-[#d4e5fa]">
-                          {currPage}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-[14.5px] font-extrabold text-[#102f56]">Halaman {currPage}</h3>
-                            <span className="px-2 py-0.5 rounded-md bg-white border border-[#d4e5fa] text-[11px] font-bold text-[#1a4fa0]">
-                              {questionsOnThisPage} Pertanyaan
-                            </span>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-white text-[#1a4fa0] flex items-center justify-center font-black text-[14px] shadow-2xs border border-[#d4e5fa]">
+                            {currPage}
                           </div>
-                          <p className="text-[12px] text-[#64779d]">
-                            Responden akan diarahkan ke halaman ini setelah menekan &quot;Selanjutnya&quot;.
-                          </p>
-        </div>
-      </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-[14.5px] font-extrabold text-[#102f56]">Halaman {currPage}</h3>
+                              <span className="px-2 py-0.5 rounded-md bg-white border border-[#d4e5fa] text-[11px] font-bold text-[#1a4fa0]">
+                                {questionsOnThisPage} Pertanyaan
+                              </span>
+                            </div>
+                            <p className="text-[12px] text-[#64779d]">
+                              Responden akan diarahkan ke halaman ini setelah menekan &quot;Selanjutnya&quot;.
+                            </p>
+                          </div>
+                        </div>
 
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => onRemovePageBreak(currPage)}
-                          className="px-3 py-1.5 rounded-xl bg-white border border-[#d4e5fa] text-gray-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50 text-[12px] font-semibold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                          title={`Gabungkan Halaman ${currPage} ke Halaman ${currPage - 1}`}
-                        >
-                          <Unlink size={13} /> Gabung ke Halaman {currPage - 1}
-                        </button>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => { const lastIdx = questions.map((x,i)=>({x,i})).filter(({x})=>(x.page||1)===currPage).pop()?.i ?? qIdx; onAddQuestionAfter(lastIdx); }}
+                            className="px-3 py-1.5 rounded-xl bg-[#1a4fa0] text-white text-[12px] font-semibold flex items-center gap-1.5 hover:opacity-90 transition shadow-2xs"
+                          >
+                            <Plus size={13} strokeWidth={2.5} /> Soal
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onRemovePageBreak(currPage)}
+                            className="px-3 py-1.5 rounded-xl bg-white border border-[#d4e5fa] text-gray-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50 text-[12px] font-semibold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                            title={`Gabungkan Halaman ${currPage} ke Halaman ${currPage - 1}`}
+                          >
+                            <Unlink size={13} /> Gabung ke Halaman {currPage - 1}
+                          </button>
+                        </div>
                       </div>
+                      {ScoreModeRow}
                     </div>
                   </div>
                 )}
@@ -1174,12 +1303,17 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
                 onRemove={() => onRemoveQ(qIdx)}
                 onDuplicate={() => onDuplicateQ(qIdx)}
                 onAddQuestionAfter={() => onAddQuestionAfter(qIdx)}
-                onAddPageBreakAfter={(q.page || 1) > 1 ? () => onAddPageBreakAfter(qIdx) : undefined}
+                onAddPageBreakAfter={
+                  // Soal di page 1 tidak bisa page break (identitas tidak boleh dipisah)
+                  // Soal di page lain boleh page break
+                  (q.page || 1) > 1 ? () => onAddPageBreakAfter(qIdx) : undefined
+                }
                 onDragHandleStart={() => setDragFrom(qIdx)}
                 onDragHandleEnd={() => { setDragFrom(null); setDragOver(null); }}
                 onShowToast={onShowToast}
-                scoreType={scoreType}
-                totalSoal={questions.length}
+                scoreType={getPageScoreType(q.page ?? 1)}
+                totalSoal={questions.filter(x => (x.page ?? 1) === (q.page ?? 1)).length}
+                geniusTotal={getPageGeniusTotal(q.page ?? 1)}
                 isSelectMode={isSelectMode}
                 isSelected={selectedQIdxs.has(qIdx)}
                 onToggleSelect={() => toggleSelectQuestion(qIdx)}
@@ -1189,7 +1323,8 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
             </div>
           </div>
         );
-      })}
+        }); // end questions.map
+      })()} {/* end IIFE */}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
         <button
@@ -1216,8 +1351,8 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
         <ImportDocxButton slug={slug} onImported={onImported} onImportedSilent={onImportedSilent} onImportGuard={onImportGuard} hasUnsaved={hasUnsaved} onSaveFirst={onSaveFirst} />
       </div>
 
-      {/* Tombol template identitas & Tambah Halaman Baru */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* Tombol template identitas */}
+      <div className="grid grid-cols-1 gap-3">
         <button
           onClick={onAddIdentityPage}
           className="w-full py-4 rounded-2xl border-2 border-dashed text-[14px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -1226,16 +1361,6 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
           onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--fm-card-border)"; e.currentTarget.style.color = "var(--fm-text-2)"; }}
         >
           <IdCard size={18} /> Tambah Halaman Identitas (Nama, Kelas, dst.)
-        </button>
-
-        <button
-          onClick={onAddNewPage}
-          className="w-full py-4 rounded-2xl border-2 border-dashed text-[14px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
-          style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = "#1a4fa0"; e.currentTarget.style.color = "#1a4fa0"; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--fm-card-border)"; e.currentTarget.style.color = "var(--fm-text-2)"; }}
-        >
-          <Layers size={18} /> Tambah Halaman Baru (Section / Page Break)
         </button>
       </div>
 
@@ -1344,7 +1469,7 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
 }
 
 /* ── Question Card ──────────────────────────────────────────── */
-const QuestionCard = memo(function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField, onAddOpt, onRemoveOpt, onToggleCorrect, onRemove, onDuplicate, onAddQuestionAfter, onAddPageBreakAfter, onDragHandleStart, onDragHandleEnd, onShowToast, scoreType, totalSoal, isSelectMode, isSelected, onToggleSelect, isEditing, onStartEdit }) {
+const QuestionCard = memo(function QuestionCard({ question, index, onUpdate, onUpdateOpt, onUpdateOptField, onAddOpt, onRemoveOpt, onToggleCorrect, onRemove, onDuplicate, onAddQuestionAfter, onAddPageBreakAfter, onDragHandleStart, onDragHandleEnd, onShowToast, scoreType, totalSoal, geniusTotal, isSelectMode, isSelected, onToggleSelect, isEditing, onStartEdit }) {
   const hasOptions = ["radio", "checkbox"].includes(question.type);
   const isEmptyText = !question.question || question.question.replace(/<[^>]*>/g, '').trim() === '';
   const showEditor = isEditing;
@@ -1710,12 +1835,12 @@ const QuestionCard = memo(function QuestionCard({ question, index, onUpdate, onU
           {/* Score badge — tampil sesuai tipe score */}
           {scoreType === "genius" && totalSoal > 0 && (
             <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-[11px] font-bold text-indigo-700">
-              <Target size={12} /> {(100 / totalSoal).toFixed(1)} pts
+              <Target size={12} /> BOBOT: {(Number(geniusTotal ?? 100) / totalSoal).toFixed(2)}
             </span>
           )}
           {scoreType === "manual" && (
             <div className="flex items-center gap-1.5">
-              <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-amber-600"><Star size={12} /> Score:</span>
+              <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-amber-600"><Star size={12} /> BOBOT:</span>
               <input
                 type="number" min="0" max="100"
                 value={question.score ?? 0}
@@ -1790,7 +1915,7 @@ function ResponsesTab({ formId, form }) {
     if (total === 0) { setExportAlert({ type: "alert", title: "Tidak Ada Data", message: "Belum ada data untuk diekspor." }); return; }
     setExporting(true);
     try {
-      const isQuiz = (form?.primary_kategori ?? form?.category) === "ujian";
+      const isQuiz = (form?.primary_kategori ?? form?.category)?.toLowerCase() === "ujian";
 
       // Fetch detail jawaban per responden
       const res = await fetch(`${FORM_API_URL}/form/submit/detail?form_slug=${formSlug}`, {
@@ -2108,7 +2233,26 @@ function ResponsesTab({ formId, form }) {
                 {!detailLoading && detail && (() => {
                   // Flatten soal dari detail
                   const soalAll = (detail ?? []).flatMap(pg => pg.soal ?? pg);
-                  // Build respondent map: submitted_id → { username, answers: {soal_id: answer} }
+                  const isQuiz = (form?.primary_kategori ?? form?.category)?.toLowerCase() === "ujian";
+
+                  // Helper: cek apakah jawaban benar
+                  function checkCorrect(s, raw) {
+                    if (!isQuiz || raw == null) return null; // null = tidak ditampilkan
+                    if (s.type === "radio" && typeof raw === "number") {
+                      const opt = (s.options ?? []).find(o => o.id === raw);
+                      return opt?.is_correct ?? false;
+                    }
+                    if (s.type === "checkbox") {
+                      const ids = typeof raw === "string"
+                        ? raw.split(",").map(x => parseInt(x.trim(), 10))
+                        : Array.isArray(raw) ? raw : [];
+                      if (!ids.length) return false;
+                      return ids.every(id => (s.options ?? []).find(o => o.id === id)?.is_correct);
+                    }
+                    return null; // text/file tidak dievaluasi
+                  }
+
+                  // Build respondent map: submitted_id → { answers: {soal_id: answer} }
                   const respMap = new Map();
                   soalAll.forEach(s => {
                     (s.responses ?? []).forEach(r => {
@@ -2124,6 +2268,7 @@ function ResponsesTab({ formId, form }) {
                         <thead>
                           <tr style={{ backgroundColor: "#1F4E78", color: "white" }}>
                             <th className="px-3 py-2 text-left font-semibold border border-[#2a5f8f] w-10">No</th>
+                            {isQuiz && <th className="px-3 py-2 text-left font-semibold border border-[#2a5f8f] w-20">Score</th>}
                             {soalAll.map((s, i) => (
                               <th key={s.id ?? i} className="px-3 py-2 text-left font-semibold border border-[#2a5f8f] min-w-[120px] max-w-[200px]">
                                 <div className="truncate">{(s.question ?? "").replace(/<[^>]*>/g, "").slice(0, 40)}</div>
@@ -2132,13 +2277,23 @@ function ResponsesTab({ formId, form }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {respRows.map(([sid, data], ri) => (
+                          {respRows.map(([sid, data], ri) => {
+                            // Hitung total score untuk baris ini
+                            const totalScore = isQuiz ? soalAll.reduce((sum, s) => {
+                              const correct = checkCorrect(s, data.answers[s.id]);
+                              return correct ? sum + (Number(s.score) || 0) : sum;
+                            }, 0) : 0;
+                            return (
                             <tr key={sid} style={{ backgroundColor: ri % 2 === 0 ? "var(--fm-card)" : "var(--fm-hover)" }}>
                               <td className="px-3 py-2 border border-[#e7edf6] text-center font-semibold" style={{ color: "var(--fm-text)" }}>{ri + 1}</td>
+                              {isQuiz && (
+                                <td className="px-3 py-2 border border-[#e7edf6] text-center font-bold text-[#1a4fa0]">{totalScore.toFixed(1)}</td>
+                              )}
                               {soalAll.map((s, i) => {
                                 const raw = data.answers[s.id];
                                 let display = "-";
                                 let isFileUrl = false;
+                                const correct = checkCorrect(s, raw);
                                 if (raw != null) {
                                   if (typeof raw === "number") {
                                     const opt = (s.options ?? []).find(o => o.id === raw);
@@ -2152,24 +2307,24 @@ function ResponsesTab({ formId, form }) {
                                 }
                                 return (
                                   <td key={s.id ?? i} className="px-3 py-2 border border-[#e7edf6] max-w-[200px]" style={{ color: "var(--fm-text)" }}>
-                                    {isFileUrl ? (
-                                      <a
-                                        href={`${FORM_API_URL}${raw.startsWith('/') ? raw : '/' + raw}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 text-[#075ee0] hover:underline font-medium"
-                                      >
-                                        <FileDown size={14} className="shrink-0" />
-                                        <span className="truncate">{raw.split("/").pop()}</span>
-                                      </a>
-                                    ) : (
-                                      <div className="truncate"><RichTextDisplay content={display} /></div>
-                                    )}
+                                    <div className="flex items-center gap-1.5">
+                                      {correct === true && <span className="shrink-0 text-green-500 font-bold text-[13px]">✓</span>}
+                                      {correct === false && <span className="shrink-0 text-red-500 font-bold text-[13px]">✗</span>}
+                                      {isFileUrl ? (
+                                        <a href={`${FORM_API_URL}${raw.startsWith('/') ? raw : '/' + raw}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#075ee0] hover:underline font-medium">
+                                          <FileDown size={14} className="shrink-0" />
+                                          <span className="truncate">{raw.split("/").pop()}</span>
+                                        </a>
+                                      ) : (
+                                        <div className="truncate"><RichTextDisplay content={display} /></div>
+                                      )}
+                                    </div>
                                   </td>
                                 );
                               })}
                             </tr>
-                          ))}
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -2188,6 +2343,20 @@ function ResponsesTab({ formId, form }) {
                 )}
                 {!detailLoading && detail && (() => {
                   const soalAll = (detail ?? []).flatMap(pg => pg.soal ?? pg);
+                  const isQuiz = (form?.primary_kategori ?? form?.category)?.toLowerCase() === "ujian";
+
+                  function checkCorrect(s, raw) {
+                    if (!isQuiz || raw == null) return null;
+                    if (s.type === "radio" && typeof raw === "number") {
+                      return (s.options ?? []).find(o => o.id === raw)?.is_correct ?? false;
+                    }
+                    if (s.type === "checkbox") {
+                      const ids = typeof raw === "string" ? raw.split(",").map(x => parseInt(x.trim(), 10)) : Array.isArray(raw) ? raw : [];
+                      return ids.length > 0 && ids.every(id => (s.options ?? []).find(o => o.id === id)?.is_correct);
+                    }
+                    return null;
+                  }
+
                   const respMap = new Map();
                   soalAll.forEach(s => {
                     (s.responses ?? []).forEach(r => {
@@ -2199,13 +2368,23 @@ function ResponsesTab({ formId, form }) {
                   if (rows.length === 0) return <p className="text-center text-[13px] py-8" style={{ color: "var(--fm-text-2)" }}>Belum ada responden.</p>;
                   return (
                     <div className="space-y-3">
-                      {rows.map((row, i) => (
+                      {rows.map((row, i) => {
+                        const totalScore = isQuiz ? soalAll.reduce((sum, s) => {
+                          const correct = checkCorrect(s, row.answers[s.id]);
+                          return correct ? sum + (Number(s.score) || 0) : sum;
+                        }, 0) : 0;
+                        return (
                         <div key={row.sid} className="border rounded-xl p-4" style={{ borderColor: "var(--fm-card-border)", backgroundColor: "var(--fm-hover)" }}>
                           <div className="flex items-center gap-3 mb-3">
                             <div className="w-8 h-8 rounded-full bg-[#1a4fa0] text-white text-[13px] font-bold flex items-center justify-center shrink-0">
                               {i + 1}
                             </div>
                             <span className="text-[13px] font-bold" style={{ color: "var(--fm-text)" }}>Responden #{i + 1}</span>
+                            {isQuiz && (
+                              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#1a4fa0]/10 text-[#1a4fa0] ml-1">
+                                Score: {totalScore.toFixed(1)}
+                              </span>
+                            )}
                             <span className="text-[11px] ml-auto" style={{ color: "var(--fm-text-2)" }}>ID: {row.sid}</span>
                           </div>
                           <div className="space-y-1.5">
@@ -2213,6 +2392,7 @@ function ResponsesTab({ formId, form }) {
                               const raw = row.answers[s.id];
                               let display = "-";
                               let isFileUrl = false;
+                              const correct = checkCorrect(s, raw);
                               if (raw != null) {
                                 if (typeof raw === "number") {
                                   const opt = (s.options ?? []).find(o => o.id === raw);
@@ -2230,19 +2410,18 @@ function ResponsesTab({ formId, form }) {
                                   <span className="font-medium shrink-0 max-w-[40%] truncate" style={{ color: "var(--fm-text-2)" }}>
                                     {(s.question ?? "").replace(/<[^>]*>/g, "").slice(0, 35)}:
                                   </span>
-                                  <div className="flex-1 min-w-0">
+                                  <div className="flex-1 min-w-0 flex items-start gap-1">
+                                    {correct === true && <span className="shrink-0 text-green-500 font-bold text-[13px] mt-[-1px]">✓</span>}
+                                    {correct === false && <span className="shrink-0 text-red-500 font-bold text-[13px] mt-[-1px]">✗</span>}
                                     {isFileUrl ? (
-                                      <a
-                                        href={`${FORM_API_URL}${raw.startsWith('/') ? raw : '/' + raw}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1.5 text-[#075ee0] hover:underline font-medium"
-                                      >
+                                      <a href={`${FORM_API_URL}${raw.startsWith('/') ? raw : '/' + raw}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[#075ee0] hover:underline font-medium">
                                         <FileDown size={14} className="shrink-0" />
                                         <span className="truncate">{raw.split("/").pop()}</span>
                                       </a>
                                     ) : (
-                                      <div style={{ color: "var(--fm-text)" }}><RichTextDisplay content={display} /></div>
+                                      <div style={{ color: correct === true ? "#16a34a" : correct === false ? "#dc2626" : "var(--fm-text)" }}>
+                                        <RichTextDisplay content={display} />
+                                      </div>
                                     )}
                                   </div>
                                 </div>
@@ -2250,7 +2429,8 @@ function ResponsesTab({ formId, form }) {
                             })}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   );
                 })()}
@@ -2443,7 +2623,7 @@ function buildQuestionStats(responses) {
 /* ── Settings Tab ───────────────────────────────────────────── */
 function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
   const isPublic   = form?.status === "public" || form?.form_status === "public";
-  const isQuiz     = (form?.primary_kategori ?? form?.category) === "ujian";
+  const isQuiz     = (form?.primary_kategori ?? form?.category)?.toLowerCase() === "ujian";
 
   // Token state — persist di localStorage supaya tidak hilang saat form reload
   const tokenStorageKey = `token_active_${form?.slug ?? slug}`;
@@ -2465,23 +2645,46 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
     }
   }, [form?.token_respon, form?.id]);
 
-  // Timer state
-  const [duration, setDuration]   = useState(form?.duration ?? "");
-  const [startAt, setStartAt]     = useState(
-    (form?.start_at && Number(form.start_at) > 0) ? new Date(form.start_at).toISOString().slice(0,16) : ""
-  );
+  // Timer state — draft disimpan ke localStorage supaya tidak hilang saat ganti tab
+  const timerDraftKey   = `timer_draft_${form?.slug ?? slug}`;
+  const [duration, setDuration] = useState(() => {
+    try {
+      const draft = localStorage.getItem(timerDraftKey);
+      if (draft) { const p = JSON.parse(draft); if (p.duration !== undefined) return p.duration; }
+    } catch {}
+    return form?.duration ?? "";
+  });
+  const [startAt, setStartAt] = useState(() => {
+    try {
+      const draft = localStorage.getItem(timerDraftKey);
+      if (draft) { const p = JSON.parse(draft); if (p.startAt !== undefined) return p.startAt; }
+    } catch {}
+    return (form?.start_at && Number(form.start_at) > 0) ? new Date(form.start_at).toISOString().slice(0, 16) : "";
+  });
   const [timerSaving, setTimerSaving] = useState(false);
   const [timerMsg, setTimerMsg]       = useState("");
+
+  // Simpan draft timer ke localStorage tiap kali berubah
+  useEffect(() => {
+    try { localStorage.setItem(timerDraftKey, JSON.stringify({ duration, startAt })); } catch {}
+  }, [duration, startAt, timerDraftKey]);
 
   // Shuffle state
   const [isRandom, setIsRandom]   = useState(form?.is_random ?? false);
   const [shuffleSaving, setShuffleSaving] = useState(false);
   const [shuffleMsg, setShuffleMsg]       = useState("");
 
-  // Score state
-  const [scoreType, setScoreType] = useState(() =>
-    localStorage.getItem(`score_type_${form?.slug ?? slug}`) ?? "none"
-  );
+  // Score state — disimpan per page: { [pageNum]: { type: "none"|"manual"|"genius", geniusTotal: number } }
+  const scoreConfigKey = `score_config_${form?.slug ?? slug}`;
+  const [scoreConfig, setScoreConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem(scoreConfigKey);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    // fallback: baca scoreType lama (migrasi)
+    const legacyType = localStorage.getItem(`score_type_${form?.slug ?? slug}`) ?? "none";
+    return { _global: { type: legacyType, geniusTotal: 100 } };
+  });
   const [scoreSaving, setScoreSaving] = useState(false);
   const [scoreMsg, setScoreMsg]       = useState("");
 
@@ -2544,11 +2747,14 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
       });
       const data = await res.json().catch(() => ({}));
       setTimerMsg(res.ok ? "Berhasil disimpan!" : (data?.message || "Gagal menyimpan."));
-      if (res.ok) onSaved?.({
-        duration: duration ? Number(duration) : null,
-        start_at: startAt ? new Date(startAt).getTime() : null,
-        is_random: isRandom,
-      });
+      if (res.ok) {
+        localStorage.removeItem(timerDraftKey);
+        onSaved?.({
+          duration: duration ? Number(duration) : null,
+          start_at: startAt ? new Date(startAt).getTime() : null,
+          is_random: isRandom,
+        });
+      }
     } catch { setTimerMsg("Gagal menyimpan."); }
     finally { setTimerSaving(false); setTimeout(() => setTimerMsg(""), 3000); }
   }
@@ -2574,12 +2780,43 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
     finally { setShuffleSaving(false); setTimeout(() => setShuffleMsg(""), 3000); }
   }
 
-  async function saveGeniusScore() {
-    if (!questions.length) { setScoreMsg("Tidak ada soal."); return; }
+  // Helper: dapatkan config untuk satu page
+  function getPageConfig(pageNum) {
+    return scoreConfig[pageNum] ?? scoreConfig["_global"] ?? { type: "none", geniusTotal: 100 };
+  }
+
+  // Helper: update config satu page dan simpan ke localStorage + dispatch event
+  function updatePageConfig(pageNum, patch) {
+    const next = {
+      ...scoreConfig,
+      [pageNum]: { ...(scoreConfig[pageNum] ?? { type: "none", geniusTotal: 100 }), ...patch },
+    };
+    setScoreConfig(next);
+    try { localStorage.setItem(scoreConfigKey, JSON.stringify(next)); } catch {}
+    // Dispatch agar PertanyaanTab (QuestionCard) ikut update
+    window.dispatchEvent(new StorageEvent("storage", { key: scoreConfigKey, newValue: JSON.stringify(next) }));
+    // Backward compat: jika semua page sama, update juga key lama
+    const types = Object.values(next).map((v) => v.type);
+    if (types.every((t) => t === types[0])) {
+      localStorage.setItem(`score_type_${form?.slug ?? slug}`, types[0]);
+    }
+  }
+
+  // Helper: unique pages dari soal
+  const uniquePages = [...new Set((form?.soal ?? []).flatMap(pg => {
+    if (pg?.soal) return [pg.page]; // format { page, soal[] }
+    return [pg?.page ?? 1];
+  }))].sort((a, b) => a - b);
+
+  async function saveGeniusSectionScore(pageNum, geniusTotal) {
+    const soalFlat = (form?.soal ?? []).flatMap(pg => pg?.soal ? pg.soal.map(s => ({ ...s, page: pg.page })) : [pg]);
+    const soalOnPage = soalFlat.filter(s => (s?.page ?? 1) === pageNum);
+    if (!soalOnPage.length) { setScoreMsg("Tidak ada soal di section ini."); return; }
+    const total = Number(geniusTotal) || 100;
+    const perSoal = parseFloat((total / soalOnPage.length).toFixed(2));
     setScoreSaving(true); setScoreMsg("");
-    const perSoal = parseFloat((100 / questions.length).toFixed(2));
     try {
-      for (const q of questions) {
+      for (const q of soalOnPage) {
         if (!q.id) continue;
         const fd = new FormData();
         fd.append("data", JSON.stringify({ soal: { question: q.question, type: q.type, score: perSoal } }));
@@ -2589,17 +2826,22 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
           body: fd,
         });
       }
-      setScoreMsg(`Genius Score (${perSoal} pts/soal) berhasil disimpan!`);
+      setScoreMsg(`Section ${pageNum}: ${perSoal} pts/soal (total ${total}) berhasil disimpan!`);
     } catch { setScoreMsg("Gagal menyimpan score."); }
     finally { setScoreSaving(false); setTimeout(() => setScoreMsg(""), 4000); }
   }
 
   function handleScoreTypeChange(val) {
-    setScoreType(val);
-    const key = `score_type_${form?.slug ?? slug}`;
-    localStorage.setItem(key, val);
-    // Dispatch storage event supaya PertanyaanTab ikut update
-    window.dispatchEvent(new StorageEvent("storage", { key, newValue: val }));
+    // kept for backward compat — sets all pages to same type
+    const next = {};
+    uniquePages.forEach(p => {
+      next[p] = { type: val, geniusTotal: scoreConfig[p]?.geniusTotal ?? 100 };
+    });
+    if (!uniquePages.length) next["_global"] = { type: val, geniusTotal: 100 };
+    setScoreConfig(next);
+    try { localStorage.setItem(scoreConfigKey, JSON.stringify(next)); } catch {}
+    localStorage.setItem(`score_type_${form?.slug ?? slug}`, val);
+    window.dispatchEvent(new StorageEvent("storage", { key: scoreConfigKey, newValue: JSON.stringify(next) }));
   }
 
   return (
@@ -2706,49 +2948,95 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
             <span className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0"><Trophy size={18} className="text-indigo-500" /></span>
             <div>
               <p className="font-bold text-gray-700 text-[15px]">Penilaian / Score</p>
-              <p className="text-[13px] text-gray-400">Atur sistem penilaian untuk kuis ini</p>
+              <p className="text-[13px] text-gray-400">Atur sistem penilaian per section untuk kuis ini</p>
             </div>
           </div>
 
-          <div>
-            <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wide block mb-1.5">Tipe Skor</label>
-            <select
-              value={scoreType}
-              onChange={e => handleScoreTypeChange(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[14px] bg-white outline-none focus:border-[#1a4fa0] focus:ring-2 focus:ring-[#1a4fa0]/10 transition"
-            >
-              <option value="none">Tanpa Skor</option>
-              <option value="genius">Genius Score (Otomatis 100/N soal)</option>
-              <option value="manual">Manual Score (per soal)</option>
-            </select>
-          </div>
-
-          {scoreType === "genius" && (
-            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-              <p className="text-[13px] text-indigo-700 font-medium mb-1 flex items-center gap-1.5">
-                <Target size={14} className="shrink-0" />
-                <span>Setiap soal mendapat <strong>{questions.length > 0 ? (100 / questions.length).toFixed(1) : "—"} pts</strong> (total 100 pts)</span>
-              </p>
-              <p className="text-[12px] text-indigo-500 mb-3">Skor dibagi rata ke {questions.length} soal secara otomatis.</p>
-              <button onClick={saveGeniusScore} disabled={scoreSaving || !questions.length}
-                className="px-4 py-2 rounded-xl text-white text-[13px] font-semibold disabled:opacity-50 transition hover:opacity-90"
-                style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)" }}>
-                {scoreSaving ? "Menyimpan..." : <><Save size={14} className="inline-block mr-1 align-[-2px]" />Simpan Genius Score</>}
-              </button>
-              {scoreMsg && <p className="text-[12px] mt-2 text-indigo-700 font-medium">{scoreMsg}</p>}
-            </div>
+          {uniquePages.length === 0 && (
+            <p className="text-[13px] text-gray-400">Belum ada soal.</p>
           )}
 
-          {scoreType === "manual" && (
-            <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
-              <p className="text-[13px] text-amber-700 font-medium mb-2 flex items-center gap-1.5">
-                <Star size={14} className="shrink-0" />
-                <span>Atur skor manual langsung di setiap soal di tab <strong>Pertanyaan</strong>.</span>
-              </p>
-              <p className="text-[12px] text-amber-600">Setiap soal memiliki input score sendiri.</p>
-              {scoreMsg && <p className="text-[12px] mt-2 text-amber-700 font-medium">{scoreMsg}</p>}
-            </div>
-          )}
+          {uniquePages.map((pageNum) => {
+            const soalFlat = (form?.soal ?? []).flatMap(pg => pg?.soal ? pg.soal.map(s => ({ ...s, page: pg.page })) : [pg]);
+            const soalOnPage = soalFlat.filter(s => (s?.page ?? 1) === pageNum);
+            const cfg = getPageConfig(pageNum);
+            const geniusTotal = cfg.geniusTotal ?? 100;
+            const perSoal = soalOnPage.length > 0 ? (Number(geniusTotal) / soalOnPage.length).toFixed(1) : "—";
+
+            return (
+              <div key={pageNum} className="rounded-xl border border-[#e5eef7] p-4 space-y-3">
+                {/* Section header */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-lg bg-[#1a4fa0] text-white text-[11px] font-extrabold flex items-center justify-center">{pageNum}</span>
+                    <span className="text-[13px] font-bold text-gray-700">
+                      {pageNum === 1 ? "Halaman 1 (Identitas)" : `Halaman ${pageNum}`}
+                    </span>
+                    <span className="text-[11px] text-gray-400">{soalOnPage.length} soal</span>
+                  </div>
+                  {/* Mode selector */}
+                  <div className="flex gap-1.5">
+                    {["none", "manual", "genius"].map((mode) => (
+                      <button
+                        key={mode}
+                        onClick={() => updatePageConfig(pageNum, { type: mode })}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition ${cfg.type === mode ? "bg-[#1a4fa0] text-white border-[#1a4fa0]" : "bg-white text-gray-500 border-gray-200 hover:border-[#1a4fa0]"}`}
+                      >
+                        {mode === "none" ? "Tanpa" : mode === "manual" ? "Manual" : "Genius"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Genius config */}
+                {cfg.type === "genius" && (
+                  <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <label className="text-[11px] font-bold text-indigo-600 uppercase tracking-wide block mb-1">Total Poin Section</label>
+                        <input
+                          type="number" min="1"
+                          value={geniusTotal}
+                          onChange={e => updatePageConfig(pageNum, { geniusTotal: e.target.value })}
+                          className="w-full border border-indigo-200 rounded-lg px-3 py-1.5 text-[13px] font-bold text-indigo-700 bg-white outline-none focus:border-indigo-400 text-center"
+                        />
+                      </div>
+                      <div className="text-center shrink-0">
+                        <p className="text-[10px] text-indigo-500 mb-0.5">per soal</p>
+                        <p className="text-[18px] font-extrabold text-indigo-700">{perSoal}</p>
+                        <p className="text-[10px] text-indigo-500">pts</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => saveGeniusSectionScore(pageNum, geniusTotal)}
+                      disabled={scoreSaving || !soalOnPage.length}
+                      className="w-full py-2 rounded-xl text-white text-[12px] font-semibold disabled:opacity-50 transition hover:opacity-90"
+                      style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)" }}
+                    >
+                      {scoreSaving ? "Menyimpan..." : <><Save size={12} className="inline-block mr-1 align-[-2px]" />Simpan Genius Score Section {pageNum}</>}
+                    </button>
+                  </div>
+                )}
+
+                {/* Manual info */}
+                {cfg.type === "manual" && (
+                  <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+                    <p className="text-[12px] text-amber-700 flex items-center gap-1.5">
+                      <Star size={12} className="shrink-0" />
+                      Atur skor manual langsung di tiap soal di tab <strong>Pertanyaan</strong>.
+                    </p>
+                  </div>
+                )}
+
+                {/* None info */}
+                {cfg.type === "none" && (
+                  <p className="text-[12px] text-gray-400">Section ini tidak dinilai.</p>
+                )}
+              </div>
+            );
+          })}
+
+          {scoreMsg && <p className="text-[12px] font-medium text-indigo-700">{scoreMsg}</p>}
         </div>
       )}
 

@@ -583,6 +583,55 @@ export default function FillForm() {
     </div>
   );
 
+  /* ── Start-at gate ─────────────────────────────────── */
+  if (form && form.start_at && Number(form.start_at) > 0 && form.duration > 0) {
+    const startMs   = Number(form.start_at);
+    const endMs     = startMs + form.duration * 60 * 1000;
+    const now       = Date.now();
+    const alreadyIn = Boolean(sessionStorage.getItem(`timer_end_${slug}`));
+
+    // Belum waktunya
+    if (now < startMs) {
+      const diffMs  = startMs - now;
+      const h = Math.floor(diffMs / 3_600_000);
+      const m = Math.floor((diffMs % 3_600_000) / 60_000);
+      const s = Math.floor((diffMs % 60_000) / 1_000);
+      const countdown = h > 0
+        ? `${h} jam ${m} menit lagi`
+        : m > 0
+        ? `${m} menit ${s} detik lagi`
+        : `${s} detik lagi`;
+      return (
+        <div data-theme="light" className="min-h-screen grid place-items-center px-4" style={{ background: "linear-gradient(135deg,var(--fm-bg) 0%,var(--fm-bg-2) 60%,var(--fm-bg-3) 100%)" }}>
+          <div className="bg-white rounded-3xl shadow-[0_16px_50px_rgba(23,64,120,0.12)] p-10 max-w-sm text-center border border-[#e5eef7]">
+            <AlarmClock size={36} className="mx-auto mb-3 text-[#1a4fa0]" />
+            <h2 className="text-[18px] font-extrabold text-[#102f56] mb-1">Form Belum Dibuka</h2>
+            <p className="text-[14px] text-gray-400 mb-2">Form ini akan dibuka pada:</p>
+            <p className="text-[15px] font-bold text-[#1a4fa0] mb-4">
+              {new Date(startMs).toLocaleString("id-ID", { dateStyle: "long", timeStyle: "short" })}
+            </p>
+            <p className="text-[13px] text-gray-400 mb-6">({countdown})</p>
+            <button onClick={() => navigate("/")} className="px-5 py-2.5 rounded-xl text-white text-[14px] font-semibold" style={{ backgroundColor: "#1a4fa0" }}>Ke Beranda</button>
+          </div>
+        </div>
+      );
+    }
+
+    // Sudah expired dan user belum mulai
+    if (now > endMs && !alreadyIn) {
+      return (
+        <div data-theme="light" className="min-h-screen grid place-items-center px-4" style={{ background: "linear-gradient(135deg,var(--fm-bg) 0%,var(--fm-bg-2) 60%,var(--fm-bg-3) 100%)" }}>
+          <div className="bg-white rounded-3xl shadow-[0_16px_50px_rgba(23,64,120,0.12)] p-10 max-w-sm text-center border border-[#e5eef7]">
+            <AlarmClock size={36} className="mx-auto mb-3 text-gray-300" />
+            <h2 className="text-[18px] font-extrabold text-[#102f56] mb-1">Waktu Pengerjaan Telah Berakhir</h2>
+            <p className="text-[14px] text-gray-400 mb-6">Form ini sudah tidak bisa diakses.</p>
+            <button onClick={() => navigate("/")} className="px-5 py-2.5 rounded-xl text-white text-[14px] font-semibold" style={{ backgroundColor: "#1a4fa0" }}>Ke Beranda</button>
+          </div>
+        </div>
+      );
+    }
+  }
+
   /* ── Timed out — tampil layar waktu habis, submit di background ── */
   if (autoSubmitting || (timedOut && !done)) return (
     <div data-theme="light" className="min-h-screen grid place-items-center px-4" style={{ background: "linear-gradient(135deg,var(--fm-bg) 0%,var(--fm-bg-2) 60%,var(--fm-bg-3) 100%)" }}>
@@ -893,9 +942,9 @@ export default function FillForm() {
           <div className="flex items-center gap-3">
             {!isFirst && (
               <button onClick={goPrev}
-                className="flex-1 py-3 rounded-xl border text-[14px] font-semibold hover:bg-black/5 transition flex items-center justify-center gap-2"
+                className="py-3 px-4 rounded-xl border text-[14px] font-semibold hover:bg-black/5 transition flex items-center justify-center"
                 style={{ borderColor: theme.borderCard || "#e5eef7", color: theme.descColor || "#64779d", backgroundColor: theme.cardBg || "#ffffff" }}>
-                <ArrowLeft size={16} /> Sebelumnya
+                <ArrowLeft size={18} />
               </button>
             )}
             {!isLast ? (
@@ -1162,9 +1211,9 @@ export default function FillForm() {
         <div className="flex items-center gap-3">
           {!isFirstS && (
             <button onClick={goPrevS}
-              className="flex-1 py-3 rounded-xl border text-[14px] font-semibold hover:bg-black/5 transition flex items-center justify-center gap-2"
+              className="py-3 px-4 rounded-xl border text-[14px] font-semibold hover:bg-black/5 transition flex items-center justify-center"
               style={{ borderColor: theme.borderCard || "#e5eef7", color: theme.descColor || "#64779d", backgroundColor: theme.cardBg || "#ffffff" }}>
-              <ArrowLeft size={16} /> Sebelumnya
+              <ArrowLeft size={18} />
             </button>
           )}
           {!isLastS ? (
