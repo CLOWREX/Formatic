@@ -203,13 +203,17 @@ export default function FillForm() {
   useEffect(() => {
     if (form) {
       const needsToken = Boolean(form?.token_respon);
+      const isTemplate = form?.status === "template";
       if (!needsToken && !tokenVerified) {
-        // Form tidak butuh token — langsung register ke backend supaya monitoring bisa tracking
-        fetch(`${FORM_API_URL}/form/submit/check-token?form_slug=${slug}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
-          body: JSON.stringify({ token: null }),
-        }).catch(() => {}); // fire-and-forget, jangan crash
+        if (!isTemplate) {
+          // Form tidak butuh token — register ke backend supaya monitoring bisa tracking
+          // Template tidak perlu register, backend tidak merekam jawaban template
+          fetch(`${FORM_API_URL}/form/submit/check-token?form_slug=${slug}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+            body: JSON.stringify({ token: null }),
+          }).catch(() => {}); // fire-and-forget
+        }
         setTokenVerified(true);
       }
     }
@@ -870,6 +874,13 @@ export default function FillForm() {
               <Bell size={18} /><span>{liveNotice}</span>
             </div>
           )}
+          {/* Notice template — tidak bisa disubmit */}
+          {form?.status === "template" && (
+            <div className="mb-4 px-4 py-3 rounded-xl text-[14px] font-semibold flex items-center gap-3 shadow-lg bg-amber-50 border border-amber-200 text-amber-700">
+              <span>📋</span>
+              <span>Ini adalah <strong>Template Soal</strong> — jawaban tidak akan direkam. Kamu hanya bisa melihat soalnya.</span>
+            </div>
+          )}
 
           {/* Form title (halaman pertama saja) */}
           {currentIdx === 0 && (
@@ -954,7 +965,11 @@ export default function FillForm() {
                 {isIdentityPage ? "Mulai Mengerjakan →" : <><span>Selanjutnya</span> <ArrowRight size={16} /></>}
               </button>
             ) : (
-              <button onClick={submit} disabled={submitting}
+              form?.status === "template"
+              ? <div className="flex-1 py-3 rounded-xl text-[14px] font-semibold flex items-center justify-center text-amber-700 bg-amber-50 border border-amber-200">
+                  📋 Template — jawaban tidak direkam
+                </div>
+              : <button onClick={submit} disabled={submitting}
                 className="flex-1 py-3 rounded-xl text-[15px] font-bold flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-60 transition shadow-md"
                 style={{ backgroundColor: theme.primaryColor || "#1a4fa0", color: theme.primaryText || "#ffffff" }}>
                 <Send size={17} /> {submitting ? "Mengirim..." : "Kirim Jawaban"}

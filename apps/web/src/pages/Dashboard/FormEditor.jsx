@@ -671,8 +671,8 @@ export default function FormEditor() {
           }}
         >
           {TABS.filter(tab => {
-            // Collaborator hanya bisa akses Pertanyaan
-            if (userRole === "Collaborator") return tab === "Pertanyaan";
+            // Collaborator hanya bisa akses Pertanyaan dan Jawaban
+            if (userRole === "Collaborator") return tab === "Pertanyaan" || tab === "Jawaban";
             return true;
           }).map((tab) => (
             <button
@@ -1339,6 +1339,29 @@ function PertanyaanTab({ form, slug, questions, error, onAddQuestion, onAddQuest
       })()} {/* end IIFE */}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+        <button
+          type="button"
+          onClick={() => onAddQuestion()}
+          className="w-full py-4 rounded-2xl border-2 border-dashed text-[15px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
+          style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#1a4fa0"; e.currentTarget.style.color = "#1a4fa0"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--fm-card-border)"; e.currentTarget.style.color = "var(--fm-text-2)"; }}
+        >
+          <ListPlus size={20} /> Tambah Pertanyaan
+        </button>
+        <button
+          type="button"
+          onClick={onAddNewPage}
+          className="w-full py-4 rounded-2xl border-2 border-dashed text-[15px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
+          style={{ borderColor: "var(--fm-card-border)", color: "var(--fm-text-2)", backgroundColor: "transparent" }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.color = "#6366f1"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--fm-card-border)"; e.currentTarget.style.color = "var(--fm-text-2)"; }}
+        >
+          <Layers size={19} /> Tambah Halaman Baru (Page Break)
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0">
         <button
           type="button"
           onClick={onExportDocx}
@@ -2197,7 +2220,16 @@ function ResponsesTab({ formId, form }) {
                         const barPct = answered > 0 ? (count / maxCount) * 70 : 0;
                         return (
                           <div key={oi} className="flex items-center gap-3">
-                            <span className="w-[30%] text-[12px] text-[#364a6e] font-medium truncate shrink-0">
+                            <span className="w-[30%] text-[12px] font-medium truncate shrink-0 flex items-center gap-1.5" style={{ color: "var(--fm-text)" }}>
+                              {opt.image && (
+                                <img
+                                  src={opt.image.startsWith("http") ? opt.image : `${FORM_API_URL}${opt.image.startsWith("/") ? opt.image : "/uploads/soal/" + opt.image}`}
+                                  alt=""
+                                  className="w-8 h-8 rounded object-cover shrink-0 border"
+                                  style={{ borderColor: "var(--fm-card-border)" }}
+                                  onError={e => { e.target.style.display = "none"; }}
+                                />
+                              )}
                               <RichTextDisplay content={opt.value ?? opt.option_value ?? `Opsi ${oi+1}`} />
                             </span>
                             <div className="flex-1 flex items-center gap-2">
@@ -2397,7 +2429,6 @@ function ResponsesTab({ formId, form }) {
                                 Score: {totalScore.toFixed(1)}
                               </span>
                             )}
-                            <span className="text-[11px] ml-auto" style={{ color: "var(--fm-text-2)" }}>ID: {row.sid}</span>
                           </div>
                           <div className="space-y-1.5">
                             {soalAll.map((s, si) => {
@@ -2488,8 +2519,20 @@ function ViewAllBtn({ q, total, formSlug }) {
     ? (detail ?? [])
         .flatMap(pg => pg.soal ?? pg)
         .filter(d => d.id === q.id)
-        .flatMap(d => (d.responses ?? []).map(r => r.answer))
-        .filter(a => a !== null && a !== undefined && a !== "")
+        .flatMap(d => {
+          const opts = d.options ?? [];
+          return (d.responses ?? []).map(r => {
+            const raw = r.answer;
+            if (raw == null) return null;
+            // Pilihan ganda — resolve ke teks opsi
+            if (typeof raw === "number") {
+              const opt = opts.find(o => o.id === raw);
+              return opt?.value ?? opt?.option_value ?? `Opsi #${raw}`;
+            }
+            return String(raw);
+          });
+        })
+        .filter(a => a !== null && a !== undefined)
     : [];
 
   return (

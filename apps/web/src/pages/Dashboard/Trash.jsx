@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api, { FORM_API_URL } from "../../utils/api";
-import { Search, Trash2, RotateCcw, Bell, FileText, AlertTriangle, Clock } from "lucide-react";
+import { Search, Trash2, RotateCcw, FileText, AlertTriangle, Clock } from "lucide-react";
 import AlertModal from "../../components/AlertModal";
 
 const TRASH_KEY = "formatic_trash";
@@ -149,9 +149,6 @@ export default function Trash() {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <button className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition">
-              <Bell size={14} />
-            </button>
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
               style={{ background: "linear-gradient(135deg,#1a4fa0,#1e6fc7)" }}>
               {username[0]?.toUpperCase()}
