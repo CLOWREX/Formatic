@@ -53,13 +53,11 @@ export class SubmitService {
   }
 
   // Check Token
-  async checkTokenResponden(req: { id: number, username: string }, form: any, token: string) {
-    const isFormPublic = await this.knexService.connection("forms")
-      .select("status")
-      .where({ id: form.id })
-      .first()
+  async checkTokenResponden(req: { id: number, username: string }, form: any, token: string) 
+  {
+    if (form.status == "template") return { message: "Perhatian Template Tidak Akan Merekam Jawaban, Hanya Bersifat Template Soal" }
 
-    if (isFormPublic.status == "private") throw new ForbiddenException("Maaf Form Masih Tertutup")
+    if (form.status == "private") throw new ForbiddenException("Maaf Form Masih Tertutup")
 
     const getStatus = await this.knexService.connection("form_submit")
       .select("status", "attemps")
@@ -404,6 +402,8 @@ export class SubmitService {
     if (!Array.isArray(payload) || payload.length === 0) {
       throw new BadRequestException("Data jawaban tidak valid")
     }
+
+    if(form.status == "template") return { message: "Berhasil Mengerjakan Tetapi Respon TIdak Ada terekam"}
 
     const questions: any[] = await this.knexService.connection('soal')
       .select('id', 'type')

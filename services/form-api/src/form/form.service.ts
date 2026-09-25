@@ -31,7 +31,7 @@ export class FormService {
         primary_kategori: 'primary_kategori.name',
         sub_kategori: 'sub_kategori.name'
       })
-      .where('forms.status', 'public')
+      .where('forms.status', 'template')
 
     if (get.length === 0) throw new NotFoundException('Tidak Ada Form Dari Category Tersebut')
 
@@ -220,7 +220,7 @@ export class FormService {
     const isCreator = await this.isCreator.isCreator(req.id, form_id.id)
     if (isCreator != 'Creator') throw new ForbiddenException("Anda Tidak Berhak Menghapus Form Ini")
 
-    const validateStatus = ['public', 'private']
+    const validateStatus = ['public', 'private', 'template']
 
     if (!validateStatus.includes(status)) throw new BadRequestException("Isi Yang Benar")
     const updateToPublic = await this.knexService.connection("forms")
