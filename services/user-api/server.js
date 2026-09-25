@@ -53,40 +53,253 @@ async function userExist(data) {
     }
 }
 
-// Register
-app.post('/user/register', async (req, res) => {
-    try {
-        const { username, password, email } = req.body
+function verifyAdmin(req, res, next) {
+    const authHeader = req.headers['authorization']
+    const token = authHeader && authHeader.split(' ')[1]
 
-        if (!username || !password || !email) {
-            return res.status(400).json({ 
-                status: 400, 
-                message: "Semua field (username, password, email) wajib diisi" 
+    if (!token) {
+        return res.status(401).json({ message: "Token tidak ditemukan, akses ditolak" })
+    }
+
+    jwt.verify(token, process.env.SECRET, (err, user) => {
+        if (err || !user.is_admin) {
+            return res.status(403).json({ message: "Akses khusus Admin!" })
+        }
+        req.user = user
+        next()
+    })
+}
+
+// ============
+// ADMIN
+// ============
+
+// Login Admin
+app.post('/admin/login', async (req, res) => {
+    try {
+        const { username, password } = req.body
+
+        const isExist = await pool.query(`
+            SELECT * FROM admin WHERE username = $1`
+            , [username])
+
+        if (isExist.rows.length === 0) {
+            return res.status(404).json({
+                message: "Admin Ini Tidak Ada"
             })
         }
 
-        // PERBAIKAN 1: Cek duplikasi berdasarkan Username ATAU Email secara spesifik
+        const adminData = isExist.rows[0]
+        const hashPassword = await bcrypt.compare(password, adminData.password)
+        if (!hashPassword) {
+            return res.status(400).json({
+                message: "Password Salah"
+            })
+        }
+
+        const token = jwtToken({ username: adminData.username, is_admin: true })
+
+        return res.json({
+            message: "Berhasil Login",
+            token: token
+        })
+    }
+    catch (err) {
+        return res.status(500).json({
+            status: 500,
+            message: "Error", error: err.message
+        })
+    }
+})
+
+// Buat Akun Admin Lain
+app.post('/admin/create-admin', verifyAdmin, async (req, res) => {
+    try {
+        const { username, password } = req.body
+
+        if (!username || !password) {
+            return res.status(400).json({
+                status: 400,
+                message: "Username dan password wajib diisi"
+            })
+        }
+
+        const existingAdmin = await pool.query(`
+            SELECT * FROM admin WHERE username = $1`
+            , [username]
+        )
+        if (existingAdmin.rows.length > 0) {
+            return res.status(409).json({
+                status: 409,
+                message: "Username admin tersebut sudah terdaftar"
+            })
+        }
+
+        const cleanCode = password.trim()
+        if (!isPasswordStrong(cleanCode)) {
+            return res.status(400).json({
+                status: 400,
+                message: "Password Min 8 Char, 1 Kapital, 1 Lower, 1 Angka"
+            })
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10)
+
+        await pool.query(
+            `INSERT INTO admin (username, password) VALUES ($1, $2)`,
+            [username, hashedPassword]
+        )
+
+        return res.status(201).json({
+            status: 201,
+            message: "Berhasil menambahkan admin baru"
+        })
+
+    } catch (err) {
+        return res.status(500).json({
+            status: 500,
+            message: "Internal Server Error",
+            error: err.message
+        })
+    }
+})
+
+// Get User
+app.get('/admin/get-user', verifyAdmin, async (req, res) => {
+    try {
+        const getUser = await pool.query(`SELECT id, username, email FROM users`)
+
+        return res.status(200).json({
+            message: "Berhasil Mendapatkan List User",
+            data: getUser.rows
+        })
+    } catch (err) {
+        return res.status(500).json({
+            status: 500,
+            message: "Error", error: err.message
+        })
+    }
+})
+
+// Delete User
+app.delete('/admin/delete-user/:userId', verifyAdmin, async (req, res) => {
+    try {
+        const { userId } = req.params
+
+        await pool.query(`DELETE FROM users WHERE id = $1`, [userId])
+
+        return res.json({
+            message: "Berhasil Menghapus User"
+        })
+    } catch (err) {
+        return res.status(500).json({
+            status: 500,
+            message: "Error", error: err.message
+        })
+    }
+})
+
+// Get All Settings (allow_registration & allow_login)
+app.get('/admin/setting', verifyAdmin, async (req, res) => {
+    try {
+        const settings = await pool.query(`SELECT config, action FROM app_setting`)
+        
+        const settingsMap = {}
+        settings.rows.forEach(row => {
+            settingsMap[row.config] = row.action
+        })
+
+        return res.status(200).json({
+            status: 200,
+            data: {
+                allow_registration: settingsMap['allow_registration'] ?? true,
+                allow_login: settingsMap['allow_login'] ?? true
+            }
+        })
+    } catch (err) {
+        return res.status(500).json({ status: 500, message: "Error", error: err.message })
+    }
+})
+
+// Update Setting (allow_registration / allow_login)
+app.put('/admin/setting', verifyAdmin, async (req, res) => {
+    try {
+        const { config, action } = req.body
+
+        if (!['allow_registration', 'allow_login'].includes(config)) {
+            return res.status(400).json({ message: "Config tidak valid" })
+        }
+
+        if (typeof action !== 'boolean') {
+            return res.status(400).json({ message: "Format action harus boolean (true/false)" })
+        }
+
+        await pool.query(
+            `INSERT INTO app_setting (config, action) VALUES ($1, $2) ON CONFLICT (config) DO UPDATE SET action = $2`,
+            [config, action]
+        )
+
+        return res.status(200).json({
+            status: 200,
+            message: `Berhasil mengubah ${config} menjadi ${action}`
+        })
+    } catch (err) {
+        return res.status(500).json({
+            status: 500,
+            message: "Internal Server Error", error: err.message
+        })
+    }
+})
+
+// ==============
+// USER
+// ==============
+
+// Register
+app.post('/user/register', async (req, res) => {
+    try {
+        const settingCheck = await pool.query(`
+            SELECT action FROM app_setting WHERE config = 'allow_registration'`
+        )
+        const isAllowRegister = settingCheck.rows[0] ? settingCheck.rows[0].action : true
+
+        if (!isAllowRegister) {
+            return res.status(403).json({
+                status: 403,
+                message: "Mohon maaf, pendaftaran akun baru sedang ditutup oleh administrator."
+            })
+        }
+
+        const { username, password, email } = req.body
+
+        if (!username || !password || !email) {
+            return res.status(400).json({
+                status: 400,
+                message: "Semua field (username, password, email) wajib diisi"
+            })
+        }
+
         const checkUsername = await userExist(username)
         if (checkUsername) {
-            return res.status(409).json({ 
-                status: 409, 
-                message: "Username sudah digunakan oleh akun lain" 
+            return res.status(409).json({
+                status: 409,
+                message: "Username sudah digunakan oleh akun lain"
             })
         }
 
         const checkEmail = await userExist(email)
         if (checkEmail) {
-            return res.status(409).json({ 
-                status: 409, 
-                message: "Email sudah terdaftar di sistem" 
+            return res.status(409).json({
+                status: 409,
+                message: "Email sudah terdaftar di sistem"
             })
         }
 
         const isSpace = password.trim()
         if (!isPasswordStrong(isSpace)) {
-            return res.status(400).json({ 
-                status: 400, 
-                message: "Password Min 8 Char, 1 Kapital, 1 Lower, 1 Angka" 
+            return res.status(400).json({
+                status: 400,
+                message: "Password Min 8 Char, 1 Kapital, 1 Lower, 1 Angka"
             })
         }
 
@@ -101,7 +314,6 @@ app.post('/user/register', async (req, res) => {
             expiresAt: Date.now() + 5 * 60 * 1000
         })
 
-        // PERBAIKAN 2: Desain HTML Email yang lebih bagus & profesional
         const htmlTemplate = `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 40px 0; margin: 0;">
             <div style="max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
@@ -145,9 +357,9 @@ app.post('/user/register', async (req, res) => {
             message: "OTP berhasil dikirim ke email. Silakan verifikasi."
         })
     } catch (err) {
-        return res.status(500).json({ 
-            status: 500, 
-            message: "Error", error: err.message 
+        return res.status(500).json({
+            status: 500,
+            message: "Error", error: err.message
         })
     }
 })
@@ -159,24 +371,24 @@ app.post('/user/verify-register', async (req, res) => {
         const pendingData = otpStorage.get(email)
 
         if (!pendingData || pendingData.type !== 'register') {
-            return res.status(400).json({ 
-                status: 400, 
-                message: "Data registrasi tidak ditemukan atau sudah kadaluarsa" 
+            return res.status(400).json({
+                status: 400,
+                message: "Data registrasi tidak ditemukan atau sudah kadaluarsa"
             })
         }
 
         if (Date.now() > pendingData.expiresAt) {
             otpStorage.delete(email)
-            return res.status(400).json({ 
-                status: 400, 
-                message: "Kode OTP sudah kadaluarsa" 
+            return res.status(400).json({
+                status: 400,
+                message: "Kode OTP sudah kadaluarsa"
             })
         }
 
         if (pendingData.otp !== otp) {
-            return res.status(400).json({ 
-                status: 400, 
-                message: "Kode OTP Salah! Akun gagal dibuat." 
+            return res.status(400).json({
+                status: 400,
+                message: "Kode OTP Salah! Akun gagal dibuat."
             })
         }
 
@@ -195,40 +407,54 @@ app.post('/user/verify-register', async (req, res) => {
             token: token
         })
     } catch (err) {
-        return res.status(500).json({ 
-            status: 500, 
-            message: "Internal Server Error", error: err.message 
+        return res.status(500).json({
+            status: 500,
+            message: "Internal Server Error", error: err.message
         })
     }
 })
 
-// Login
+// Login (Tanpa OTP / Langsung Berikan Token)
 app.post('/user/login', async (req, res) => {
     try {
+        // Cek apakah login sedang ditutup oleh admin
+        const settingCheck = await pool.query(`
+            SELECT action FROM app_setting WHERE config = 'allow_login'`
+        )
+        const isAllowLogin = settingCheck.rows[0] ? settingCheck.rows[0].action : true
+
+        if (!isAllowLogin) {
+            return res.status(403).json({
+                status: 403,
+                message: "Mohon maaf, layanan login sedang ditutup oleh administrator."
+            })
+        }
+
         const { data, password } = req.body
         if (!data || !password) {
-            return res.status(400).json({ 
-                status: 400, 
-                message: "Isi Dengan Benar (Username/Email dan Password)" 
+            return res.status(400).json({
+                status: 400,
+                message: "Isi Dengan Benar (Username/Email dan Password)"
             })
         }
 
         const exist = await userExist(data)
         if (!exist) {
-            return res.status(401).json({ 
-                status: 401, 
-                message: "Username/Email atau password salah" 
+            return res.status(401).json({
+                status: 401,
+                message: "Username/Email atau password salah"
             })
         }
 
         const isMatch = await bcrypt.compare(password, exist.password)
         if (!isMatch) {
-            return res.status(401).json({ 
-                status: 401, 
-                message: "Username atau password salah" 
+            return res.status(401).json({
+                status: 401,
+                message: "Username atau password salah"
             })
         }
 
+        /*
         const generateOtp = Math.floor(100000 + Math.random() * 900000)
 
         otpStorage.set(exist.email, {
@@ -267,7 +493,6 @@ app.post('/user/login', async (req, res) => {
                 </div>
             </div>
         </div>
-        `
 
         await transporter.sendMail({
             from: '"Formatic Auth" <nabixka05@gmail.com>',
@@ -275,49 +500,52 @@ app.post('/user/login', async (req, res) => {
             subject: "🔑 Kode OTP Login Anda (Formatic)",
             text: `Kode OTP Login Anda adalah: ${generateOtp}`,
             html: htmlLoginTemplate
-        })
+        }) 
+        */
+
+        const token = jwtToken({ id: exist.id, username: exist.username })
 
         return res.status(200).json({
             status: 200,
-            message: "Password benar. OTP dikirim ke email untuk verifikasi login.",
-            email: exist.email
+            message: "Berhasil Login",
+            token: token
         })
     } catch (err) {
-        return res.status(500).json({ 
-            status: 500, 
-            message: "Internal Server Error", error: err.message 
+        return res.status(500).json({
+            status: 500,
+            message: "Internal Server Error", error: err.message
         })
     }
 })
 
-// VerifyLogin
-app.post('/user/verify-login', async (req, res) => {
+// VerifyLogin (Dikomentari karena login langsung berhasil tanpa OTP)
+/*
+ app.post('/user/verify-login', async (req, res) => {
     try {
         const { email, otp } = req.body
         const pendingData = otpStorage.get(email)
 
         if (!pendingData || pendingData.type !== 'login') {
-            return res.status(400).json({ 
-                status: 400, 
-                message: "Sesi login tidak ditemukan atau kadaluarsa" 
+            return res.status(400).json({
+                status: 400,
+                message: "Sesi login tidak ditemukan atau kadaluarsa"
             })
         }
 
         if (Date.now() > pendingData.expiresAt) {
             otpStorage.delete(email)
-            return res.status(400).json({ 
-                status: 400, 
-                message: "Kode OTP sudah kadaluarsa" 
+            return res.status(400).json({
+                status: 400,
+                message: "Kode OTP sudah kadaluarsa"
             })
         }
 
         if (pendingData.otp !== otp) {
-            return res.status(400).json({ 
-                status: 400, 
-                message: "Kode OTP Salah!" 
+            return res.status(400).json({
+                status: 400,
+                message: "Kode OTP Salah!"
             })
         }
-
         otpStorage.delete(email)
         const token = jwtToken({ id: pendingData.userId, username: pendingData.username })
 
@@ -327,37 +555,38 @@ app.post('/user/verify-login', async (req, res) => {
             token: token
         })
     } catch (err) {
-        return res.status(500).json({ 
-            status: 500, 
-            message: "Internal Server Error", error: err.message 
+        return res.status(500).json({
+            status: 500,
+            message: "Internal Server Error", error: err.message
         })
     }
-})
+}) 
+*/
 
 // Forgot Password
 app.put('/user/forgot-password', async (req, res) => {
     try {
         const { username, password } = req.body
         if (!username || !password) {
-            return res.status(400).json({ 
-                status: 400, 
-                message: "Isi Yang Benar" 
+            return res.status(400).json({
+                status: 400,
+                message: "Isi Yang Benar"
             })
         }
 
         const exist = await userExist(username)
         if (!exist) {
-            return res.status(404).json({ 
-                status: 404, 
-                message: "User Tidak Ada" 
+            return res.status(404).json({
+                status: 404,
+                message: "User Tidak Ada"
             })
         }
 
         const cleanCode = password.trim()
         if (!isPasswordStrong(cleanCode)) {
-            return res.status(400).json({ 
-                status: 400, 
-                message: "Password Min 8 Char, 1 Kapital, 1 Lower" 
+            return res.status(400).json({
+                status: 400,
+                message: "Password Min 8 Char, 1 Kapital, 1 Lower"
             })
         }
 
@@ -368,15 +597,15 @@ app.put('/user/forgot-password', async (req, res) => {
             [hashPassword, username]
         )
 
-        return res.status(200).json({ 
-            status: 200, 
-            message: "Berhasil Mengubah Password" 
+        return res.status(200).json({
+            status: 200,
+            message: "Berhasil Mengubah Password"
         })
     }
     catch (err) {
-        return res.status(500).json({ 
-            status: 500, 
-            message: "Internal Server Error", error: err.message 
+        return res.status(500).json({
+            status: 500,
+            message: "Internal Server Error", error: err.message
         })
     }
 })
