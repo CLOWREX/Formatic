@@ -80,8 +80,15 @@ export default function Trash() {
   }
 
   async function restore(form) {
+    const slug = form.form_slug ?? form.slug;
     try {
-      const slug = form.form_slug ?? form.slug;
+      // Kembalikan status form ke private di backend supaya muncul di MyForms
+      const res = await fetch(`${FORM_API_URL}/form?form_slug=${slug}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+        body: JSON.stringify({ status: "private" }),
+      });
+      if (!res.ok) throw new Error();
       removeFromTrash(slug);
       showToast("Form berhasil dipulihkan ke My Forms!");
       load();

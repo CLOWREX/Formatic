@@ -300,17 +300,29 @@ export default function Discovery() {
                     <div className="space-y-2 ml-11">
                       {(s.options ?? []).map((opt, oi) => (
                         <div key={opt.id ?? oi}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg border text-[13px]"
+                          className="flex items-start gap-2.5 px-3 py-2 rounded-lg border text-[13px]"
                           style={{ backgroundColor: "var(--fm-card)", borderColor: "var(--fm-border)", color: "var(--fm-text)" }}>
-                          <span className="w-5 h-5 rounded border grid place-items-center shrink-0 text-[10px] font-bold"
+                          <span className="w-5 h-5 rounded border grid place-items-center shrink-0 text-[10px] font-bold mt-0.5"
                             style={{ borderColor: "var(--fm-border)", color: "var(--fm-text-2)" }}>
                             {String.fromCharCode(65 + oi)}
                           </span>
-                          <RichTextDisplay
-                            content={opt.value ?? opt.option_value ?? `Opsi ${oi + 1}`}
-                            className="text-[13px]"
-                            style={{ color: "var(--fm-text)" }}
-                          />
+                          <div className="flex-1 min-w-0">
+                            <RichTextDisplay
+                              content={opt.value ?? opt.option_value ?? `Opsi ${oi + 1}`}
+                              className="text-[13px]"
+                              style={{ color: "var(--fm-text)" }}
+                            />
+                            {/* Gambar opsi kalau ada */}
+                            {opt.image && (
+                              <img
+                                src={opt.image.startsWith("http") ? opt.image : `${FORM_API_URL}${opt.image.startsWith("/") ? opt.image : "/uploads/soal/" + opt.image}`}
+                                alt={`Opsi ${String.fromCharCode(65 + oi)}`}
+                                className="mt-2 max-h-40 rounded-lg object-contain border"
+                                style={{ borderColor: "var(--fm-card-border)" }}
+                                onError={e => { e.target.style.display = "none"; }}
+                              />
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
