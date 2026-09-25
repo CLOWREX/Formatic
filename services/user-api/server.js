@@ -23,7 +23,7 @@ app.use(cors({
 app.set('trust proxy', 1)
 
 function jwtToken(payload) {
-    return jwt.sign(payload, process.env.SECRET, { expiresIn: '1d' })
+    return jwt.sign(payload, process.env.SECRET, { expiresIn: '30d' })
 }
 
 function isPasswordStrong(password) {
