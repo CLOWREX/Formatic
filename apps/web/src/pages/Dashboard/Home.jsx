@@ -301,7 +301,6 @@ export default function Home() {
               <p className="mt-1 text-[13px] text-[#8195b2] hidden sm:block">Kelola form, pantau respons, dan berbagi dengan mudah.</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <button className="w-9 h-9 flex items-center justify-center text-[#143b75] bg-transparent border-none cursor-pointer"><Bell size={18} /></button>
               <div className="w-9 h-9 rounded-full bg-[#1458d1] text-white text-[13px] font-bold flex items-center justify-center">{username[0]?.toUpperCase()}</div>
             </div>
           </header>
