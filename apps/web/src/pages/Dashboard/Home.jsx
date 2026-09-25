@@ -24,6 +24,12 @@ function timeAgo(dateStr) {
 
 const HISTORY_KEY = "formatic_history";
 
+function getUserId() {
+  try { return JSON.parse(atob(localStorage.getItem("token").split(".")[1])).id ?? "guest"; }
+  catch { return "guest"; }
+}
+function getHistoryKey() { return `${HISTORY_KEY}_${getUserId()}`; }
+
 
 
 /* ── Activity Card ─────────────────────────────────────────────── */
@@ -75,7 +81,7 @@ function HistoryPengerjaan({ loading: parentLoading }) {
 
   useEffect(() => {
     try {
-      const local = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]");
+      const local = JSON.parse(localStorage.getItem(getHistoryKey()) ?? "[]");
       setHistory(local);
     } catch { setHistory([]); }
   }, []);

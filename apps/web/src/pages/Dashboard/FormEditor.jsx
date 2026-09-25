@@ -629,15 +629,27 @@ export default function FormEditor() {
               <Trash2 size={17} />
             </button>
             <button
-              onClick={() => updateStatus(isPublished ? "private" : "public")}
+              onClick={() => {
+                const cur = form?.status ?? form?.form_status ?? "private";
+                const next = cur === "private" ? "public" : cur === "public" ? "template" : "private";
+                updateStatus(next);
+              }}
               className={`hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold border transition-all ${
-                isPublished
+                (form?.status ?? form?.form_status) === "public"
                   ? "border-green-200 text-green-700 bg-green-50 hover:bg-green-100"
+                  : (form?.status ?? form?.form_status) === "template"
+                  ? "border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100"
                   : "border-gray-200 text-gray-500 bg-white hover:bg-gray-50"
               }`}
             >
-              <span className={`w-2 h-2 rounded-full ${isPublished ? "bg-green-500" : "bg-gray-400"}`} />
-              {isPublished ? "Published" : "Draft"}
+              <span className={`w-2 h-2 rounded-full ${
+                (form?.status ?? form?.form_status) === "public" ? "bg-green-500"
+                : (form?.status ?? form?.form_status) === "template" ? "bg-blue-500"
+                : "bg-gray-400"
+              }`} />
+              {(form?.status ?? form?.form_status) === "public" ? "Published"
+                : (form?.status ?? form?.form_status) === "template" ? "Template"
+                : "Draft"}
             </button>
             <button
               onClick={saveQuestions}
@@ -2848,14 +2860,40 @@ function SettingsTab({ form, onUpdateStatus, slug, onSaved }) {
     <div className="max-w-2xl mx-auto py-8 px-4 space-y-4">
 
       {/* Status Publikasi */}
-      <div className="rounded-2xl border shadow-sm p-6 flex items-center justify-between gap-4" style={{ backgroundColor: "var(--fm-card)", borderColor: "var(--fm-card-border)" }}>
+      <div className="rounded-2xl border shadow-sm p-6 space-y-4" style={{ backgroundColor: "var(--fm-card)", borderColor: "var(--fm-card-border)" }}>
         <div>
-          <p className="font-bold text-[15px]" style={{ color: "var(--fm-text)" }}>Status Publikasi</p>
+          <p className="font-bold text-[15px]" style={{ color: "var(--fm-text)" }}>Status Form</p>
           <p className="text-[13px] mt-1" style={{ color: "var(--fm-text-2)" }}>
-            {isPublic ? "Form dapat diisi oleh siapa saja dengan link." : "Form bersifat privat."}
+            Atur visibilitas dan akses form.
           </p>
         </div>
-        <Toggle value={isPublic} onChange={() => onUpdateStatus(isPublic ? "private" : "public")} />
+
+        {/* 3 pilihan status */}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { value: "private",  label: "Privat",   desc: "Hanya kamu yang bisa akses",    icon: "🔒", color: "#6b7280" },
+            { value: "public",   label: "Publik",   desc: "Siapa saja bisa mengisi form",   icon: "🌐", color: "#16a34a" },
+            { value: "template", label: "Template", desc: "Muncul di Discovery, bisa disalin", icon: "📋", color: "#1a4fa0" },
+          ].map(opt => {
+            const current = form?.status ?? form?.form_status ?? "private";
+            const isActive = current === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => onUpdateStatus(opt.value)}
+                className="flex flex-col items-start gap-1.5 px-4 py-3 rounded-xl border-2 text-left transition-all"
+                style={{
+                  borderColor: isActive ? opt.color : "var(--fm-card-border)",
+                  backgroundColor: isActive ? `${opt.color}12` : "var(--fm-hover)",
+                }}
+              >
+                <span className="text-[18px]">{opt.icon}</span>
+                <span className="text-[13px] font-bold" style={{ color: isActive ? opt.color : "var(--fm-text)" }}>{opt.label}</span>
+                <span className="text-[11px] leading-tight" style={{ color: "var(--fm-text-2)" }}>{opt.desc}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Token Responden */}

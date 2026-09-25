@@ -222,13 +222,22 @@ export default function Discovery() {
                     </div>
                     {/* Info */}
                     <div className="p-3 flex-1 flex flex-col gap-1">
-                      <span className={`text-[10px] font-bold uppercase tracking-wide ${form.category === "ujian" ? "text-purple-500" : "text-blue-500"}`}>
-                        {form.category}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`text-[10px] font-bold uppercase tracking-wide ${form.category === "ujian" ? "text-purple-500" : "text-blue-500"}`}>
+                          {form.category}
+                        </span>
+                        {form.status === "template" && (
+                          <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+                            Template
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[14px] font-bold leading-tight line-clamp-2" style={{ color: "var(--fm-text)" }}>{form.title}</p>
                       <div className="flex items-center gap-1 mt-auto pt-2">
                         <BookOpen size={12} className="text-gray-400" />
-                        <span className="text-[11px]" style={{ color: "var(--fm-text-2)" }}>Lihat soal</span>
+                        <span className="text-[11px]" style={{ color: "var(--fm-text-2)" }}>
+                          {form.status === "template" ? "Salin Template" : "Lihat soal"}
+                        </span>
                       </div>
                     </div>
                   </div>

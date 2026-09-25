@@ -38,9 +38,17 @@ function timeAgo(iso) {
   return `${d} hari lalu`;
 }
 
+/* Ambil user ID dari token untuk isolasi history per akun */
+function getUserId() {
+  try { return JSON.parse(atob(localStorage.getItem("token").split(".")[1])).id ?? "guest"; }
+  catch { return "guest"; }
+}
+function getHistoryKey() { return `${HISTORY_KEY}_${getUserId()}`; }
+
 /* Simpan history ke localStorage saat submit form */
 export function saveToHistory(formSlug, formTitle, category) {
-  const existing = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]");
+  const key = getHistoryKey();
+  const existing = JSON.parse(localStorage.getItem(key) ?? "[]");
   const entry = {
     form_slug: formSlug,
     form_title: formTitle,
@@ -48,7 +56,7 @@ export function saveToHistory(formSlug, formTitle, category) {
     submitted_at: new Date().toISOString(),
   };
   const filtered = existing.filter(e => e.form_slug !== formSlug);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify([entry, ...filtered].slice(0, 50)));
+  localStorage.setItem(key, JSON.stringify([entry, ...filtered].slice(0, 50)));
 }
 
 const CAT_STYLE = {
@@ -81,7 +89,7 @@ export default function History() {
   function loadHistory(showLoading = true) {
     if (showLoading) setLoading(true);
     try {
-      const local = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]");
+      const local = JSON.parse(localStorage.getItem(getHistoryKey()) ?? "[]");
       setHistory(local);
     } catch {
       setHistory([]);
@@ -98,9 +106,10 @@ export default function History() {
   // Hapus satu entri dari riwayat lokal (tidak menyentuh data server)
   function removeEntry(formSlug) {
     try {
-      const local = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]");
+      const key = getHistoryKey();
+      const local = JSON.parse(localStorage.getItem(key) ?? "[]");
       const next = local.filter(e => e.form_slug !== formSlug);
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+      localStorage.setItem(key, JSON.stringify(next));
       setHistory(next);
     } catch { /* abaikan */ }
   }

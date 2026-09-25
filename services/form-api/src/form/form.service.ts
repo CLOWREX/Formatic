@@ -31,7 +31,7 @@ export class FormService {
         primary_kategori: 'primary_kategori.name',
         sub_kategori: 'sub_kategori.name'
       })
-      .where('forms.status', 'public')
+      .whereIn('forms.status', ['public', 'template'])
 
     if (get.length === 0) throw new NotFoundException('Tidak Ada Form Dari Category Tersebut')
 
@@ -57,8 +57,12 @@ export class FormService {
         primary_kategori: 'primary_kategori.name',
         sub_kategori: 'sub_kategori.name'
       })
-      .where({ "sub_kategori.name": lower, "forms.status": "public" })
-      .orWhere({ "primary_kategori.name": lower, "forms.status": "public" })
+      .where(function() {
+        this.where({ "sub_kategori.name": lower }).whereIn("forms.status", ['public', 'template'])
+      })
+      .orWhere(function() {
+        this.where({ "primary_kategori.name": lower }).whereIn("forms.status", ['public', 'template'])
+      })
 
     if (get.length === 0) throw new NotFoundException('Tidak Ada Form Dari Category Tersebut')
 
