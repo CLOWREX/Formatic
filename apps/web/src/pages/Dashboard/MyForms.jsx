@@ -231,7 +231,13 @@ export default function MyForms() {
     setLoading(true);
     try {
       const res = await api.get("/form/user");
-      setForms((res.data?.data?.forms ?? []).map(flattenForm));
+      const allForms = (res.data?.data?.forms ?? []).map(flattenForm);
+      // Filter form yang sudah ada di trash localStorage — jangan tampilkan di MyForms
+      const trashSlugs = new Set(
+        JSON.parse(localStorage.getItem("formatic_trash") ?? "[]")
+          .map(f => f.form_slug ?? f.slug)
+      );
+      setForms(allForms.filter(f => !trashSlugs.has(f.slug ?? f.form_slug)));
     } catch { setForms([]); }
     finally { setLoading(false); }
   }
