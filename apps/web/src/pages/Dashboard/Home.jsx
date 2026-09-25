@@ -280,7 +280,13 @@ export default function Home() {
     setMyLoading(true);
     try {
       const res  = await api.get("/form/user");
-      setMyForms((res.data?.data?.forms ?? []).map(flattenForm));
+      const allForms = (res.data?.data?.forms ?? []).map(flattenForm);
+      // Filter form yang ada di trash — jangan tampilkan di Home
+      const trashSlugs = new Set(
+        JSON.parse(localStorage.getItem("formatic_trash") ?? "[]")
+          .map(f => f.form_slug ?? f.slug)
+      );
+      setMyForms(allForms.filter(f => !trashSlugs.has(f.slug ?? f.form_slug)));
     } catch { setMyForms([]); }
     finally { setMyLoading(false); }
   }
