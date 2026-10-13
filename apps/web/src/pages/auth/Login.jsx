@@ -45,13 +45,9 @@ export default function Login() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    // OTP step
-    const [step, setStep] = useState("login"); // "login" | "otp"
-    const [otpEmail, setOtpEmail] = useState("");
-    const [otp, setOtp] = useState("");
-
     const iconStyle = { color: COLORS.iconGlyph };
 
+    // Login langsung tanpa OTP (backend return token)
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
@@ -59,71 +55,19 @@ export default function Login() {
 
         try {
             const { data } = await authAPI.login(identifier, password);
-            // Backend balas dengan email untuk step OTP
-            setOtpEmail(data.email);
-            setStep("otp");
+            // Backend langsung return token — tidak perlu OTP step
+            if (data.token) {
+                localStorage.setItem("token", data.token);
+                navigate("/");
+            } else {
+                setError("Login gagal, coba lagi.");
+            }
         } catch (err) {
             setError(err.response?.data?.message || "Login gagal");
         } finally {
             setLoading(false);
         }
     };
-
-    const handleVerifyOtp = async (e) => {
-        e.preventDefault();
-        setError("");
-        setLoading(true);
-
-        try {
-            const { data } = await authAPI.verifyLogin(otpEmail, otp);
-            localStorage.setItem("token", data.token);
-            navigate("/");
-        } catch (err) {
-            setError(err.response?.data?.message || "OTP salah atau kadaluarsa");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleResendOtp = async () => {
-        setError("");
-        try {
-            await authAPI.login(identifier, password);
-        } catch (err) {
-            setError(err.response?.data?.message || "Gagal mengirim ulang kode");
-            throw err;
-        }
-    };
-
-    const backToLogin = () => { setStep("login"); setError(""); setOtp(""); };
-
-    if (step === "otp") {
-        return (
-            <div
-                className="relative min-h-screen w-full flex items-center justify-center px-6 py-12 overflow-hidden"
-                style={{
-                    background:
-                        "linear-gradient(120deg, #062457 0%, #0b3f66 20%, #1c5f86 38%, #4d91b2 55%, #8fbccb 68%, #cde3ea 82%, #f7fafb 94%, #ffffff 100%)",
-                    minHeight: "100dvh",
-                }}
-            >
-                <OtpCard
-                    email={otpEmail}
-                    otp={otp}
-                    setOtp={setOtp}
-                    onVerify={handleVerifyOtp}
-                    loading={loading}
-                    error={error}
-                    dark={dark}
-                    C={C}
-                    backLabel="Kembali ke login"
-                    onBack={backToLogin}
-                    onEditEmail={backToLogin}
-                    onResend={handleResendOtp}
-                />
-            </div>
-        );
-    }
 
     return (
         <div
@@ -317,13 +261,21 @@ export default function Login() {
 
                             <div className="flex items-center text-sm">
                                 <label className="flex items-center gap-2 cursor-pointer select-none" style={{ color: C.gray }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={rememberMe}
-                                        onChange={() => setRememberMe((v) => !v)}
-                                        className="appearance-none rounded-full border border-slate-300 checked:bg-cyan-500 checked:border-cyan-500 transition cursor-pointer"
-                                        style={{ width: "16px", height: "16px" }}
-                                    />
+                                    <div
+                                        onClick={() => setRememberMe(v => !v)}
+                                        className="flex items-center justify-center rounded transition-all cursor-pointer shrink-0"
+                                        style={{
+                                            width: "18px", height: "18px",
+                                            border: `2px solid ${rememberMe ? "#28ACCE" : "#cbd5e1"}`,
+                                            backgroundColor: rememberMe ? "#28ACCE" : "transparent",
+                                        }}
+                                    >
+                                        {rememberMe && (
+                                            <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                                                <path d="M1 4L4 7L10 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                            </svg>
+                                        )}
+                                    </div>
                                     Remember me
                                 </label>
                             </div>
