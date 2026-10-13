@@ -110,7 +110,7 @@ export default function Discovery() {
   return (
     <div className="flex min-h-screen">
       <main className="flex-1 min-w-0 overflow-x-hidden">
-        <div className="min-h-screen px-4 sm:px-6 md:px-8 xl:px-[42px] py-6 md:py-[34px] pb-[80px] md:pb-[60px]"
+        <div className="min-h-screen px-4 sm:px-6 md:px-8 xl:px-[42px] py-6 md:py-[34px] pb-6 md:pb-[60px]"
           style={{ background: "linear-gradient(135deg, var(--fm-bg) 0%, var(--fm-bg-2) 55%, var(--fm-bg-3) 100%)", color: "var(--fm-text)" }}>
 
           {/* Header */}
